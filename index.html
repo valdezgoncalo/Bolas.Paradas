@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SCP - Gestor Tático Profissional</title>
+    <style>
+        :root { --scp-verde: #006633; --scp-ouro: #C5A147; }
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: white; margin: 0; overflow: hidden; }
+        
+        /* Sistema de Telas com Scroll */
+        .screen { display: none; height: 100vh; width: 100vw; overflow-y: auto; }
+        .active-screen { display: flex; }
+
+        /* Página Inicial */
+        #main-menu { flex-direction: column; align-items: center; padding: 20px 0; gap: 20px; }
+        .card { background: #222; padding: 20px; border-radius: 10px; border: 1px solid var(--scp-ouro); width: 90%; max-width: 500px; flex-shrink: 0; }
+
+        /* App Principal */
+        #tactical-screen { overflow: hidden; }
+        #app-sidebar { width: 300px; background: #222; border-right: 2px solid var(--scp-ouro); display: flex; flex-direction: column; padding: 10px; overflow-y: auto; }
+        #canvas-container { flex-grow: 1; position: relative; background: var(--scp-verde); display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        
+        #pitch { 
+            width: 95%; height: 90%; border: 3px solid white; position: relative;
+            background-image: linear-gradient(0deg, rgba(255,255,255,0.1) 50%, transparent 50%);
+            background-size: 100% 80px;
+        }
+
+        /* Jogadoras e Elementos */
+        .player {
+            width: 60px; height: 60px; border-radius: 50%; border: 2px solid gold;
+            position: absolute; z-index: 5; cursor: move; touch-action: none;
+            background-size: cover; background-position: center;
+            display: flex; align-items: flex-end; justify-content: center;
+        }
+        .player span { background: rgba(0,0,0,0.8); font-size: 10px; padding: 2px 4px; border-radius: 3px; margin-bottom: -12px; font-weight: bold; pointer-events: none; }
+
+        .arrow { position: absolute; width: 60px; height: 60px; cursor: move; z-index: 4; font-size: 45px; color: yellow; display: flex; align-items: center; justify-content: center; touch-action: none; }
+
+        /* Botões */
+        button, input { width: 100%; padding: 15px; margin: 8px 0; border-radius: 8px; border: none; font-weight: bold; font-size: 14px; }
+        .btn-green { background: var(--scp-verde); color: white; }
+        .btn-gold { background: var(--scp-ouro); color: black; }
+        .btn-outline { background: #333; color: white; border: 1px solid #555; }
+
+        /* Grid de Convocatórias */
+        #convocatoria-list { 
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); 
+            gap: 15px; margin-top: 15px; 
+        }
+        .atleta-check { font-size: 11px; text-align: center; cursor: pointer; opacity: 0.4; transition: 0.2s; }
+        .atleta-check.selected { opacity: 1; transform: scale(1.05); }
+        .atleta-check img { border-radius: 50%; border: 2px solid transparent; }
+        .atleta-check.selected img { border-color: var(--scp-ouro); }
+    </style>
+</head>
+<body>
+
+<div id="main-menu" class="screen active-screen">
+    <img src="https://upload.wikimedia.org/wikipedia/pt/3/3e/Sporting_Clube_de_Portugal.png" width="80" alt="SCP">
+    <h2 style="color:var(--scp-ouro); margin: 0;">SCP Tática Offside</h2>
+    
+    <div class="card">
+        <h3>Registar Atleta</h3>
+        <input type="text" id="new-player-name" placeholder="Nome da Atleta">
+        <input type="file" id="new-player-photo" accept="image/*">
+        <button class="btn-green" onclick="saveToClub()">+ Guardar no Plantel</button>
+    </div>
+
+    <div class="card">
+        <h3>Convocatória para o Quadro</h3>
+        <input type="text" id="match-name" placeholder="Nome do Jogo (Opcional)">
+        <div id="convocatoria-list">
+            </div>
+        <button class="btn-gold" style="margin-top:20px; font-size: 18px;" onclick="startMatch()">ENTRAR NO QUADRO ➔</button>
+    </div>
+</div>
+
+<div id="tactical-screen" class="screen">
+    <div id="app-sidebar">
+        <button class="btn-outline" onclick="location.reload()">⬅ Voltar ao Menu</button>
+        
+        <div class="menu-section">
+            <h3 id="display-match-name" style="color:var(--scp-ouro); margin-bottom:5px;"></h3>
+            <div id="match-squad" style="display:flex; flex-wrap:wrap; gap:8px; background: #111; padding: 10px; border-radius: 8px;"></div>
+        </div>
+
+        <div class="menu-section">
+            <h4 style="margin:10px 0 5px 0;">Adicionar Setas</h4>
+            <div style="display: flex; gap: 5px;">
+                <button class="btn-gold" onclick="addArrow('➔')">➔</button>
+                <button class="btn-gold" onclick="addArrow('➥')">➥</button>
+                <button class="btn-gold" onclick="addArrow('⭕')">⭕</button>
+            </div>
+        </div>
+
+        <div class="menu-section" style="margin-top: auto;">
+            <button class="btn-green" onclick="savePlay()">💾 Guardar Jogada</button>
+            <div id="saved-plays-list"></div>
+            <button class="btn-outline" style="background:#900;" onclick="undo()">↩ Desfazer Erro</button>
+        </div>
+    </div>
+
+    <div id="canvas-container">
+        <div id="pitch">
+            <div style="width:40%; height:12%; border:2px solid white; margin: 0 auto; border-top:none;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let db = JSON.parse(localStorage.getItem('scp_db')) || { atletas: [], jogadas: {} };
+    let convocadasIds = [];
+    let history = [];
+
+    // --- REGISTO ---
+    function saveToClub() {
+        const name = document.getElementById('new-player-name').value;
+        const photoInput = document.getElementById('new-player-photo');
+        if(!name) return;
+
+        if (photoInput.files && photoInput.files[0]) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                db.atletas.push({ id: Date.now(), name: name, photo: e.target.result });
+                finishRegister();
+            };
+            reader.readAsDataURL(photoInput.files[0]);
+        } else {
+            db.atletas.push({ id: Date.now(), name: name, photo: null });
+            finishRegister();
+        }
+    }
+
+    function finishRegister() {
+        localStorage.setItem('scp_db', JSON.stringify(db));
+        renderConvocatoria();
+        document.getElementById('new-player-name').value = '';
+        document.getElementById('new-player-photo').value = '';
+    }
+
+    function renderConvocatoria() {
+        const list = document.getElementById('convocatoria-list');
+        list.innerHTML = '';
+        db.atletas.forEach(a => {
+            const div = document.createElement('div');
+            div.className = 'atleta-check';
+            div.innerHTML = `<img src="${a.photo || 'https://via.placeholder.com/50'}" width="50" height="50"><br>${a.name}`;
+            div.onclick = () => {
+                div.classList.toggle('selected');
+                if(div.classList.contains('selected')) convocadasIds.push(a.id);
+                else convocadasIds = convocadasIds.filter(id => id !== a.id);
+            };
+            list.appendChild(div);
+        });
+    }
+
+    // --- ENTRAR NO QUADRO ---
+    function startMatch() {
+        const mName = document.getElementById('match-name').value || "Treino/Jogo";
+        document.getElementById('display-match-name').innerText = mName;
+        document.getElementById('main-menu').classList.remove('active-screen');
+        document.getElementById('tactical-screen').classList.add('active-screen');
+        renderMatchSquad();
+    }
+
+    function renderMatchSquad() {
+        const container = document.getElementById('match-squad');
+        container.innerHTML = '';
+        const listToRender = convocadasIds.length > 0 
+            ? db.atletas.filter(a => convocadasIds.includes(a.id)) 
+            : db.atletas;
+
+        listToRender.forEach(a => {
+            const img = document.createElement('div');
+            img.style.width = '45px'; img.style.height = '45px';
+            img.style.borderRadius = '50%'; img.style.border = '2px solid var(--scp-ouro)';
+            img.style.backgroundImage = `url(${a.photo || 'https://via.placeholder.com/50'})`;
+            img.style.backgroundSize = 'cover';
+            img.onclick = () => spawnPlayer(a.name, a.photo);
+            container.appendChild(img);
+        });
+    }
+
+    // --- LÓGICA DO CAMPO ---
+    function spawnPlayer(name, photo) {
+        saveState();
+        const p = document.createElement('div');
+        p.className = 'player';
+        p.style.backgroundImage = `url(${photo || 'https://via.placeholder.com/60'})`;
+        p.style.left = '45%'; p.style.top = '70%';
+        p.innerHTML = `<span>${name}</span>`;
+        p.ondblclick = () => { p.remove(); saveState(); };
+        makeDraggable(p);
+        document.getElementById('pitch').appendChild(p);
+    }
+
+    function addArrow(type) {
+        saveState();
+        const a = document.createElement('div');
+        a.className = 'arrow';
+        a.innerText = type;
+        a.style.left = '50%'; a.style.top = '50%';
+        let rot = 0;
+        a.onclick = () => { rot += 45; a.style.transform = `rotate(${rot}deg)`; };
+        a.ondblclick = () => { a.remove(); saveState(); };
+        makeDraggable(a);
+        document.getElementById('pitch').appendChild(a);
+    }
+
+    function makeDraggable(el) {
+        let p1=0, p2=0, p3=0, p4=0;
+        el.onmousedown = ds; el.ontouchstart = (e) => ds(e.touches[0]);
+        function ds(e) { p3=e.clientX; p4=e.clientY; document.onmouseup = de; document.ontouchend = de; document.onmousemove = dm; document.ontouchmove = (e) => dm(e.touches[0]); }
+        function dm(e) { p1=p3-e.clientX; p2=p4-e.clientY; p3=e.clientX; p4=e.clientY; el.style.top=(el.offsetTop-p2)+"px"; el.style.left=(el.offsetLeft-p1)+"px"; }
+        function de() { document.onmouseup = null; document.onmousemove = null; saveState(); }
+    }
+
+    function saveState() {
+        history.push(document.getElementById('pitch').innerHTML);
+        if(history.length > 20) history.shift();
+    }
+
+    function undo() {
+        if(history.length > 1) {
+            history.pop();
+            document.getElementById('pitch').innerHTML = history[history.length - 1];
+            document.querySelectorAll('.player, .arrow').forEach(makeDraggable);
+        }
+    }
+
+    window.onload = () => { renderConvocatoria(); };
+</script>
+</body>
+</html>
