@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SCP Tactical Pro V12</title>
+    <title>SCP Tactical Pro ULTIMATE</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Staatliches&family=Inter:wght@400;600;700&display=swap');
         
@@ -58,6 +58,12 @@
             width: 100%; 
             max-width: 600px;
             box-shadow: 0 4px 20px rgba(197, 161, 71, 0.1);
+            animation: slideIn 0.4s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
         .logo-title {
@@ -68,6 +74,12 @@
             letter-spacing: 2px;
             text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
             margin-bottom: 10px;
+            animation: glow 2s ease-in-out infinite;
+        }
+        
+        @keyframes glow {
+            0%, 100% { text-shadow: 2px 2px 8px rgba(197, 161, 71, 0.4); }
+            50% { text-shadow: 2px 2px 20px rgba(197, 161, 71, 0.8); }
         }
 
         /* App Sidebar */
@@ -105,6 +117,7 @@
             background-size: 100% 60px, 60px 100%;
             box-shadow: 0 8px 40px rgba(0,0,0,0.5);
             border-radius: 4px;
+            transition: transform 0.3s ease;
         }
         
         .goal { 
@@ -147,6 +160,7 @@
             z-index: 10; 
             touch-action: none; 
             cursor: move;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         
         .player { 
@@ -158,22 +172,36 @@
             background-position: center;
             background-color: #333;
             display: flex; 
-            align-items: flex-end; 
+            flex-direction: column;
+            align-items: center; 
             justify-content: center;
             box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-            transition: transform 0.15s ease;
         }
         
-        .player:active {
-            transform: scale(1.1);
+        .player.animating {
+            animation: playerMove 2s ease-in-out infinite;
         }
         
-        .player span { 
+        @keyframes playerMove {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .player-number {
+            font-size: 18px;
+            font-weight: 900;
+            color: var(--scp-ouro);
+            text-shadow: 0 0 4px rgba(0,0,0,0.8);
+            margin-top: -5px;
+        }
+        
+        .player-name { 
             background: rgba(0,0,0,0.9); 
-            font-size: 10px; 
-            padding: 3px 6px; 
+            font-size: 9px; 
+            padding: 2px 5px; 
             border-radius: 3px; 
-            margin-bottom: -18px; 
+            margin-top: 65px;
+            position: absolute;
             font-weight: 700;
             white-space: nowrap;
             border: 1px solid var(--scp-ouro);
@@ -187,11 +215,6 @@
             border: 3px solid white; 
             background: linear-gradient(135deg, #ff3333 0%, #cc0000 100%);
             box-shadow: 0 4px 12px rgba(255,0,0,0.4);
-            transition: transform 0.15s ease;
-        }
-        
-        .opponent:active {
-            transform: scale(1.1);
         }
         
         .arrow-container { 
@@ -199,6 +222,7 @@
             display: flex; 
             align-items: center;
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+            transition: all 0.3s ease;
         }
         
         .arrow-line { 
@@ -220,6 +244,7 @@
             border: 4px solid yellow; 
             background: rgba(255,255,255,0.1);
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+            transition: all 0.3s ease;
         }
         
         .handle { 
@@ -234,6 +259,15 @@
             cursor: nwse-resize;
             box-shadow: 0 2px 8px rgba(0,0,0,0.3);
             z-index: 20;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        
+        .arrow-container:hover .handle,
+        .shape:hover .handle {
+            opacity: 1;
+            pointer-events: all;
         }
         
         .text-annotation {
@@ -249,10 +283,36 @@
             font-size: 14px;
             border: 2px solid var(--scp-ouro);
             box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-            white-space: nowrap;
             max-width: 200px;
             word-wrap: break-word;
-            white-space: normal;
+        }
+        
+        .soccer-ball {
+            position: absolute;
+            z-index: 10;
+            touch-action: none;
+            cursor: move;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #ffffff, #e0e0e0);
+            box-shadow: 
+                0 4px 12px rgba(0,0,0,0.4),
+                inset -2px -2px 8px rgba(0,0,0,0.2),
+                inset 2px 2px 8px rgba(255,255,255,0.8);
+            transition: transform 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .soccer-ball::before {
+            content: '⚽';
+            font-size: 28px;
+        }
+        
+        .soccer-ball:active {
+            transform: scale(1.1);
         }
 
         /* UI Elements */
@@ -266,34 +326,31 @@
             cursor: pointer;
             font-family: 'Inter', sans-serif;
             font-size: 14px;
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         
         button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
         }
         
         button:active {
-            transform: translateY(0);
+            transform: translateY(0) scale(0.98);
         }
         
         .btn-green { 
-            background: var(--scp-verde); 
+            background: linear-gradient(135deg, var(--scp-verde) 0%, #007744 100%);
             color: white;
         }
         
-        .btn-green:hover {
-            background: #007744;
-        }
-        
         .btn-gold { 
-            background: var(--scp-ouro); 
+            background: linear-gradient(135deg, var(--scp-ouro) 0%, #D4B158 100%);
             color: black;
         }
         
-        .btn-gold:hover {
-            background: #D4B158;
+        .btn-blue {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            color: white;
         }
         
         .active-play-label { 
@@ -326,15 +383,17 @@
             margin: 15px 0 10px 0;
         }
         
-        input[type="text"], input[type="file"] {
+        input[type="text"], input[type="file"], input[type="number"] {
             background: #333;
             color: white;
             border: 2px solid #555;
+            transition: border-color 0.3s ease;
         }
         
-        input[type="text"]:focus {
+        input[type="text"]:focus, input[type="number"]:focus {
             outline: none;
             border-color: var(--scp-ouro);
+            box-shadow: 0 0 10px rgba(197, 161, 71, 0.3);
         }
         
         select {
@@ -356,22 +415,18 @@
             border: 2px solid #333;
         }
         
-        #match-squad::-webkit-scrollbar {
+        #match-squad::-webkit-scrollbar, #saved-plays-list::-webkit-scrollbar {
             width: 8px;
         }
         
-        #match-squad::-webkit-scrollbar-track {
+        #match-squad::-webkit-scrollbar-track, #saved-plays-list::-webkit-scrollbar-track {
             background: #1a1a1a;
             border-radius: 4px;
         }
         
-        #match-squad::-webkit-scrollbar-thumb {
+        #match-squad::-webkit-scrollbar-thumb, #saved-plays-list::-webkit-scrollbar-thumb {
             background: var(--scp-ouro);
             border-radius: 4px;
-        }
-        
-        #match-squad::-webkit-scrollbar-thumb:hover {
-            background: #D4B158;
         }
         
         .squad-player {
@@ -383,45 +438,85 @@
             background-position: center;
             background-color: #333;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
             box-shadow: 0 2px 8px rgba(0,0,0,0.3);
             flex-shrink: 0;
+            position: relative;
         }
         
         .squad-player:hover {
-            transform: scale(1.1);
+            transform: scale(1.2) rotate(5deg);
             border-color: #D4B158;
+            box-shadow: 0 4px 16px rgba(197, 161, 71, 0.5);
         }
         
-        .squad-player:active {
-            transform: scale(0.95);
+        .squad-player-number {
+            position: absolute;
+            bottom: -5px;
+            right: -5px;
+            background: var(--scp-ouro);
+            color: black;
+            font-size: 10px;
+            font-weight: 900;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #222;
         }
         
         #full-management-list {
             margin-top: 15px;
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr;
             gap: 10px;
         }
         
         .athlete-card {
             background: #333;
-            padding: 12px;
+            padding: 15px;
             border-radius: 8px;
             display: flex;
-            justify-content: space-between;
+            gap: 15px;
             align-items: center;
             border: 2px solid #444;
-            transition: border-color 0.2s ease;
+            transition: all 0.3s ease;
         }
         
         .athlete-card:hover {
             border-color: var(--scp-ouro);
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(197, 161, 71, 0.2);
         }
         
-        .athlete-card span {
-            font-weight: 600;
-            font-size: 13px;
+        .athlete-photo {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid var(--scp-ouro);
+            background-size: cover;
+            background-position: center;
+            background-color: #222;
+            flex-shrink: 0;
+        }
+        
+        .athlete-info {
+            flex-grow: 1;
+        }
+        
+        .athlete-info-name {
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        
+        .athlete-info-details {
+            font-size: 12px;
+            color: #aaa;
+            display: flex;
+            gap: 15px;
         }
         
         .delete-btn {
@@ -435,34 +530,13 @@
             justify-content: center;
             font-weight: 700;
             font-size: 16px;
-        }
-        
-        .delete-btn:hover {
-            background: #c82333;
+            flex-shrink: 0;
         }
         
         #saved-plays-list {
             margin-top: 10px;
             max-height: 300px;
             overflow-y: auto;
-        }
-        
-        #saved-plays-list::-webkit-scrollbar {
-            width: 8px;
-        }
-        
-        #saved-plays-list::-webkit-scrollbar-track {
-            background: #1a1a1a;
-            border-radius: 4px;
-        }
-        
-        #saved-plays-list::-webkit-scrollbar-thumb {
-            background: var(--scp-ouro);
-            border-radius: 4px;
-        }
-        
-        #saved-plays-list::-webkit-scrollbar-thumb:hover {
-            background: #D4B158;
         }
         
         .play-item {
@@ -474,21 +548,19 @@
             justify-content: space-between;
             align-items: center;
             border: 2px solid #444;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
         }
         
         .play-item:hover {
             border-color: var(--scp-ouro);
             background: #3a3a3a;
+            transform: translateX(3px);
         }
         
         .play-name {
             cursor: pointer;
             flex-grow: 1;
             font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
         
         .tool-grid {
@@ -498,48 +570,182 @@
             margin-top: 10px;
         }
         
-        /* Responsive */
-        @media (max-width: 768px) {
-            #app-sidebar {
-                width: 280px;
-            }
-            
-            .logo-title {
-                font-size: 2rem;
-            }
-            
-            #full-management-list {
-                grid-template-columns: 1fr;
-            }
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            animation: fadeIn 0.3s ease;
         }
         
-        /* Animações */
+        .modal-content {
+            background: var(--scp-card);
+            margin: 5% auto;
+            padding: 30px;
+            border: 3px solid var(--scp-ouro);
+            border-radius: 15px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 85vh;
+            overflow-y: auto;
+            animation: slideIn 0.4s ease;
+        }
+        
+        .modal-close {
+            color: #aaa;
+            float: right;
+            font-size: 32px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        
+        .modal-close:hover {
+            color: var(--scp-ouro);
+        }
+        
+        /* Comparison View */
+        .comparison-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .comparison-pitch {
+            border: 3px solid var(--scp-ouro);
+            border-radius: 10px;
+            overflow: hidden;
+            background: var(--scp-verde);
+            position: relative;
+            aspect-ratio: 2/3;
+        }
+        
+        .comparison-title {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--scp-ouro);
+            color: black;
+            padding: 5px 15px;
+            border-radius: 15px;
+            font-weight: 700;
+            font-size: 14px;
+            z-index: 10;
+        }
+        
+        /* Templates */
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .template-card {
+            background: #333;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #444;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .template-card:hover {
+            border-color: var(--scp-ouro);
+            transform: translateY(-5px);
+            box-shadow: 0 6px 20px rgba(197, 161, 71, 0.3);
+        }
+        
+        .template-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+        
+        /* Animation Controls */
+        .animation-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.85);
+            padding: 15px 25px;
+            border-radius: 30px;
+            border: 2px solid var(--scp-ouro);
+            display: none;
+            gap: 15px;
+            align-items: center;
+            z-index: 101;
+        }
+        
+        .animation-controls.active {
+            display: flex;
+        }
+        
+        .animation-btn {
+            width: 50px !important;
+            height: 50px;
+            border-radius: 50%;
+            padding: 0 !important;
+            margin: 0 !important;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
         
-        .card {
-            animation: fadeIn 0.4s ease;
-        }
-        
-        /* Loading State */
+        /* Loading */
         .loading {
             pointer-events: none;
             opacity: 0.6;
         }
+        
+        /* Share Code Display */
+        .share-code {
+            background: #111;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid var(--scp-ouro);
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            text-align: center;
+            margin: 15px 0;
+            word-break: break-all;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            #app-sidebar { width: 280px; }
+            .logo-title { font-size: 2rem; }
+            .comparison-container { grid-template-columns: 1fr; }
+        }
     </style>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
 </head>
 <body>
 
 <div id="main-menu" class="screen active-screen">
-    <div class="logo-title">SCP GESTOR TÁTICO</div>
+    <div class="logo-title">SCP GESTOR TÁTICO ULTIMATE</div>
     
     <div class="card">
-        <h3 style="margin-top:0;">⚽ Registar / Remover Atletas</h3>
+        <h3 style="margin-top:0;">⚽ Gestão de Atletas</h3>
         <input type="text" id="p-name" placeholder="Nome da Atleta">
+        <input type="number" id="p-number" placeholder="Número (1-99)" min="1" max="99">
+        <input type="text" id="p-position" placeholder="Posição (ex: GR, DC, MC)">
         <input type="file" id="p-photo" accept="image/*">
         <button class="btn-green" onclick="registerAtleta()">+ Guardar Atleta</button>
         <div id="full-management-list"></div>
@@ -553,18 +759,23 @@
 <div id="tactical-screen" class="screen">
     <div class="active-play-label" id="current-play-name">NOVA JOGADA</div>
     
+    <div class="animation-controls" id="animation-controls">
+        <button class="animation-btn btn-gold" onclick="animatePlay()" title="Play">▶️</button>
+        <button class="animation-btn btn-gold" onclick="stopAnimation()" title="Stop">⏹️</button>
+        <button class="animation-btn btn-blue" onclick="exportGIF()" title="Exportar GIF">🎬</button>
+    </div>
+    
     <div id="app-sidebar">
         <button onclick="switchScreen('main-menu')" style="background:#444; color:white;">
             ⬅ MENU PRINCIPAL
         </button>
         
-        <h4 class="section-title">🏃 BANCO (Toque para entrar)</h4>
+        <h4 class="section-title">🏃 BANCO</h4>
         <div id="match-squad"></div>
 
         <div class="divider"></div>
         
-        <h4 class="section-title">🎨 FERRAMENTAS DE DESENHO</h4>
-        <p style="font-size:12px; margin:5px 0; color:#aaa;">Cor do Desenho:</p>
+        <h4 class="section-title">🎨 FERRAMENTAS</h4>
         <select id="color-picker">
             <option value="yellow">Amarelo</option>
             <option value="white">Branco</option>
@@ -579,18 +790,20 @@
             <button class="btn-gold" onclick="addShape()">⭕ Zona</button>
             <button class="btn-gold" onclick="addOpponent()">🔴 Adversário</button>
             <button class="btn-gold" onclick="addText()">📝 Texto</button>
+            <button class="btn-gold" onclick="addBall()">⚽ Bola</button>
         </div>
         
         <button class="btn-gold" style="background:#555; color:white; margin-top:5px;" onclick="undo()">↩ Desfazer</button>
-        
-        <button class="btn-green" onclick="clearPitch()" style="margin-top:5px;">
-            🗑️ Limpar Campo
-        </button>
+        <button class="btn-green" onclick="clearPitch()">🗑️ Limpar</button>
         
         <div class="divider"></div>
         
-        <h4 class="section-title">⚡ FORMAÇÕES RÁPIDAS</h4>
-        <p style="font-size:12px; margin:5px 0; color:#aaa;">Posicionar jogadoras automaticamente:</p>
+        <h4 class="section-title">📋 TEMPLATES</h4>
+        <button class="btn-blue" onclick="showTemplates()">🎯 Ver Templates</button>
+        
+        <div class="divider"></div>
+        
+        <h4 class="section-title">⚡ FORMAÇÕES</h4>
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
             <button class="btn-gold" style="font-size:11px; padding:8px;" onclick="applyFormation('4-3-3')">4-3-3</button>
             <button class="btn-gold" style="font-size:11px; padding:8px;" onclick="applyFormation('4-4-2')">4-4-2</button>
@@ -600,27 +813,22 @@
 
         <div class="divider"></div>
         
-        <h4 class="section-title">🔍 VISUALIZAÇÃO</h4>
-        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px;">
-            <button class="btn-gold" style="font-size:11px; padding:8px;" onclick="zoomPitch(1.2)">🔍 +</button>
-            <button class="btn-gold" style="font-size:11px; padding:8px;" onclick="zoomPitch(1)">100%</button>
-            <button class="btn-gold" style="font-size:11px; padding:8px;" onclick="zoomPitch(0.8)">🔍 -</button>
-        </div>
-
+        <h4 class="section-title">🎬 ANIMAÇÃO</h4>
+        <button class="btn-blue" onclick="toggleAnimationControls()">▶️ Controles de Animação</button>
+        
         <div class="divider"></div>
         
-        <h4 class="section-title">💾 GESTÃO DE JOGADAS</h4>
+        <h4 class="section-title">💾 GESTÃO</h4>
         <input type="text" id="play-name-input" placeholder="Nome da Jogada">
-        <button class="btn-green" onclick="savePlay()">💾 Gravar Jogada</button>
+        <button class="btn-green" onclick="savePlay()">💾 Gravar</button>
         
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
-            <button class="btn-gold" onclick="exportCurrentPlayPDF()">📄 PDF Atual</button>
-            <button class="btn-gold" onclick="exportAllPlaysPDF()">📥 PDF Todas</button>
+            <button class="btn-gold" onclick="exportCurrentPlayPDF()">📄 PDF</button>
+            <button class="btn-gold" onclick="sharePlay()">🔗 Partilhar</button>
         </div>
         
-        <button class="btn-gold" style="background:#555; color:white; margin-top:5px; font-size:11px;" onclick="showKeyboardShortcuts()">
-            ⌨️ Atalhos de Teclado
-        </button>
+        <button class="btn-blue" onclick="comparePlaysByID()">⚖️ Comparar Jogadas</button>
+        
         <div id="saved-plays-list"></div>
     </div>
 
@@ -633,10 +841,98 @@
     </div>
 </div>
 
+<!-- Templates Modal -->
+<div id="templates-modal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeModal('templates-modal')">&times;</span>
+        <h2 style="color:var(--scp-ouro)">📋 Templates de Jogadas</h2>
+        <div class="template-grid" id="templates-grid"></div>
+    </div>
+</div>
+
+<!-- Comparison Modal -->
+<div id="comparison-modal" class="modal">
+    <div class="modal-content" style="max-width:1200px;">
+        <span class="modal-close" onclick="closeModal('comparison-modal')">&times;</span>
+        <h2 style="color:var(--scp-ouro)">⚖️ Comparação de Jogadas</h2>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin:15px 0;">
+            <select id="compare-play-1" style="padding:10px;"></select>
+            <select id="compare-play-2" style="padding:10px;"></select>
+        </div>
+        <button class="btn-gold" onclick="renderComparison()">🔍 Comparar</button>
+        <div class="comparison-container" id="comparison-container"></div>
+    </div>
+</div>
+
+<!-- Share Modal -->
+<div id="share-modal" class="modal">
+    <div class="modal-content">
+        <span class="modal-close" onclick="closeModal('share-modal')">&times;</span>
+        <h2 style="color:var(--scp-ouro)">🔗 Partilhar Jogada</h2>
+        <p>Código da Jogada:</p>
+        <div class="share-code" id="share-code"></div>
+        <button class="btn-gold" onclick="copyShareCode()">📋 Copiar Código</button>
+        <hr style="margin:20px 0; border-color:#444;">
+        <p>Importar Jogada:</p>
+        <textarea id="import-code" style="width:100%; height:100px; background:#111; color:white; border:2px solid #444; border-radius:8px; padding:10px; font-family:monospace;" placeholder="Cole o código aqui..."></textarea>
+        <button class="btn-green" onclick="importPlay()">📥 Importar</button>
+    </div>
+</div>
+
 <script>
-    let db = JSON.parse(localStorage.getItem('scp_db_v12')) || { atletas: [], plays: {} };
+    let db = JSON.parse(localStorage.getItem('scp_db_ultimate')) || { atletas: [], plays: {}, templates: {} };
     let history = [];
     let isDragging = false;
+    let animationInterval = null;
+    let animationStep = 0;
+
+    // Initialize templates
+    if(Object.keys(db.templates).length === 0) {
+        db.templates = {
+            'Ataque Rápido': {
+                description: 'Contra-ataque pela ala direita',
+                players: [
+                    {name: 'GR', left: '50%', top: '92%', number: 1},
+                    {name: 'Lateral', left: '80%', top: '75%', number: 2},
+                    {name: 'Médio', left: '70%', top: '55%', number: 8},
+                    {name: 'Avançado', left: '75%', top: '25%', number: 9}
+                ],
+                arrows: [
+                    {left: '50%', top: '90%', width: '150px', angle: -30, color: 'yellow'},
+                    {left: '75%', top: '75%', width: '120px', angle: -20, color: 'yellow'},
+                    {left: '72%', top: '55%', width: '100px', angle: -10, color: 'yellow'}
+                ]
+            },
+            'Defesa Zona': {
+                description: 'Defesa em bloco médio',
+                players: [
+                    {name: 'DC1', left: '40%', top: '65%', number: 4},
+                    {name: 'DC2', left: '60%', top: '65%', number: 5},
+                    {name: 'MC1', left: '35%', top: '50%', number: 6},
+                    {name: 'MC2', left: '65%', top: '50%', number: 8}
+                ],
+                shapes: [
+                    {left: '35%', top: '50%', width: '200px', height: '150px', color: 'red'}
+                ]
+            },
+            'Bola Parada': {
+                description: 'Esquema de canto',
+                players: [
+                    {name: 'Batedor', left: '85%', top: '15%', number: 10},
+                    {name: 'Alvo1', left: '45%', top: '12%', number: 9},
+                    {name: 'Alvo2', left: '55%', top: '12%', number: 7},
+                    {name: 'Apoio', left: '50%', top: '25%', number: 8}
+                ],
+                arrows: [
+                    {left: '82%', top: '15%', width: '180px', angle: 160, color: 'white'}
+                ],
+                shapes: [
+                    {left: '45%', top: '10%', width: '80px', height: '80px', color: 'yellow'}
+                ]
+            }
+        };
+        localStorage.setItem('scp_db_ultimate', JSON.stringify(db));
+    }
 
     // --- NAVEGAÇÃO ---
     function switchScreen(id) {
@@ -644,7 +940,7 @@
         document.getElementById(id).classList.add('active-screen');
         if(id === 'tactical-screen') {
             renderMatchSquad();
-            saveState(); // Inicializa histórico
+            saveState();
         }
         renderFullManagement();
     }
@@ -652,6 +948,8 @@
     // --- GESTÃO ATLETAS ---
     function registerAtleta() {
         const name = document.getElementById('p-name').value.trim();
+        const number = parseInt(document.getElementById('p-number').value) || 0;
+        const position = document.getElementById('p-position').value.trim() || '-';
         const file = document.getElementById('p-photo').files[0];
         
         if(!name) {
@@ -660,9 +958,11 @@
         }
         
         const save = (img) => {
-            db.atletas.push({id: Date.now(), name, photo: img});
+            db.atletas.push({id: Date.now(), name, number, position, photo: img});
             updateDB();
             document.getElementById('p-name').value = '';
+            document.getElementById('p-number').value = '';
+            document.getElementById('p-position').value = '';
             document.getElementById('p-photo').value = '';
         };
         
@@ -676,14 +976,14 @@
     }
 
     function deleteAtleta(id) {
-        if(confirm("Tem certeza que deseja remover esta atleta?")) {
+        if(confirm("Remover esta atleta?")) {
             db.atletas = db.atletas.filter(a => a.id !== id);
             updateDB();
         }
     }
 
     function updateDB() {
-        localStorage.setItem('scp_db_v12', JSON.stringify(db));
+        localStorage.setItem('scp_db_ultimate', JSON.stringify(db));
         renderFullManagement();
         renderMatchSquad();
     }
@@ -691,16 +991,40 @@
     function renderFullManagement() {
         const list = document.getElementById('full-management-list');
         if(db.atletas.length === 0) {
-            list.innerHTML = '<p style="text-align:center; color:#888; grid-column: 1/-1;">Nenhuma atleta registada</p>';
+            list.innerHTML = '<p style="text-align:center; color:#888;">Nenhuma atleta registada</p>';
             return;
         }
         
-        list.innerHTML = db.atletas.map(a => `
-            <div class="athlete-card">
-                <span>${a.name}</span>
-                <button class="delete-btn" onclick="deleteAtleta(${a.id})">×</button>
-            </div>
-        `).join('');
+        list.innerHTML = '';
+        
+        db.atletas.forEach(a => {
+            const card = document.createElement('div');
+            card.className = 'athlete-card';
+            
+            const photo = document.createElement('div');
+            photo.className = 'athlete-photo';
+            photo.style.backgroundImage = `url(${a.photo || 'https://via.placeholder.com/60/333/fff?text=' + a.name.charAt(0)})`;
+            
+            const info = document.createElement('div');
+            info.className = 'athlete-info';
+            info.innerHTML = `
+                <div class="athlete-info-name">${a.name}</div>
+                <div class="athlete-info-details">
+                    <span>Nº ${a.number || '-'}</span>
+                    <span>${a.position || '-'}</span>
+                </div>
+            `;
+            
+            const delBtn = document.createElement('button');
+            delBtn.className = 'delete-btn';
+            delBtn.textContent = '×';
+            delBtn.onclick = () => deleteAtleta(a.id);
+            
+            card.appendChild(photo);
+            card.appendChild(info);
+            card.appendChild(delBtn);
+            list.appendChild(card);
+        });
     }
 
     function renderMatchSquad() {
@@ -716,29 +1040,53 @@
             const div = document.createElement('div');
             div.className = 'squad-player';
             div.style.backgroundImage = `url(${a.photo || 'https://via.placeholder.com/60/333/fff?text=' + a.name.charAt(0)})`;
-            div.title = a.name;
-            div.onclick = () => spawnPlayer(a.name, a.photo);
+            div.title = `${a.name} - Nº${a.number || '?'} - ${a.position || '?'}`;
+            div.onclick = () => spawnPlayer(a.name, a.photo, a.number, a.position);
+            
+            if(a.number) {
+                const numBadge = document.createElement('div');
+                numBadge.className = 'squad-player-number';
+                numBadge.textContent = a.number;
+                div.appendChild(numBadge);
+            }
+            
             c.appendChild(div);
         });
     }
 
     // --- QUADRO TÁTICO ---
-    function spawnPlayer(name, photo, left='45%', top='70%') {
+    function spawnPlayer(name, photo, number = 0, position = '', left='45%', top='70%') {
         saveState();
         const p = document.createElement('div');
         p.className = 'player';
         p.style.backgroundImage = `url(${photo || 'https://via.placeholder.com/60/333/fff?text=' + name.charAt(0)})`;
         p.style.left = left; 
         p.style.top = top;
-        p.innerHTML = `<span>${name}</span>`;
+        
+        if(number) {
+            const numDiv = document.createElement('div');
+            numDiv.className = 'player-number';
+            numDiv.textContent = number;
+            p.appendChild(numDiv);
+        }
+        
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'player-name';
+        nameDiv.textContent = name;
+        p.appendChild(nameDiv);
+        
         p.dataset.name = name; 
         p.dataset.photo = photo || '';
+        p.dataset.number = number || '';
+        p.dataset.position = position || '';
+        
         p.ondblclick = () => { 
-            if(confirm(`Remover ${name} do campo?`)) {
+            if(confirm(`Remover ${name}?`)) {
                 p.remove(); 
                 saveState(); 
             }
         };
+        
         attachDraggable(p);
         document.getElementById('pitch').appendChild(p);
     }
@@ -767,6 +1115,7 @@
                 saveState(); 
             }
         };
+        
         attachDraggable(c);
         document.getElementById('pitch').appendChild(c);
     }
@@ -831,6 +1180,7 @@
                 saveState(); 
             }
         };
+        
         attachDraggable(s);
         document.getElementById('pitch').appendChild(s);
     }
@@ -875,7 +1225,7 @@
         o.style.left = data ? data.left : '50%'; 
         o.style.top = data ? data.top : '20%';
         o.ondblclick = () => { 
-            if(confirm('Remover adversário?')) {
+            if(confirm('Remover?')) {
                 o.remove(); 
                 saveState(); 
             }
@@ -885,10 +1235,14 @@
     }
     
     function addText(data = null) {
-        const text = data ? data.text : prompt("Texto da anotação:", "Escreva aqui...");
-        if(!text || text.trim() === "" || text === "Escreva aqui...") {
-            if(!data) alert("Por favor, escreva um texto!");
-            return;
+        let text;
+        
+        if(data) {
+            text = data.text;
+        } else {
+            text = prompt("Digite o texto:", "");
+            if(text === null || text.trim() === "") return;
+            text = text.trim();
         }
         
         saveState();
@@ -901,14 +1255,42 @@
         t.dataset.text = text;
         
         t.ondblclick = () => {
-            if(confirm('Remover anotação?')) {
+            if(confirm('Remover texto?')) {
                 t.remove();
+                saveState();
+            }
+        };
+        
+        t.oncontextmenu = (e) => {
+            e.preventDefault();
+            const newText = prompt("Editar:", t.textContent);
+            if(newText && newText.trim() !== "") {
+                t.textContent = newText.trim();
+                t.dataset.text = newText.trim();
                 saveState();
             }
         };
         
         attachDraggable(t);
         document.getElementById('pitch').appendChild(t);
+    }
+    
+    function addBall(data = null) {
+        saveState();
+        const b = document.createElement('div');
+        b.className = 'soccer-ball';
+        b.style.left = data ? data.left : '50%';
+        b.style.top = data ? data.top : '50%';
+        
+        b.ondblclick = () => {
+            if(confirm('Remover bola?')) {
+                b.remove();
+                saveState();
+            }
+        };
+        
+        attachDraggable(b);
+        document.getElementById('pitch').appendChild(b);
     }
     
     function applyFormation(formation) {
@@ -923,14 +1305,10 @@
         
         const formations = {
             '4-3-3': [
-                // GR
                 {left: '50%', top: '92%'},
-                // Defesas
                 {left: '20%', top: '75%'}, {left: '40%', top: '80%'}, 
                 {left: '60%', top: '80%'}, {left: '80%', top: '75%'},
-                // Médios
                 {left: '30%', top: '55%'}, {left: '50%', top: '60%'}, {left: '70%', top: '55%'},
-                // Avançados
                 {left: '20%', top: '30%'}, {left: '50%', top: '25%'}, {left: '80%', top: '30%'}
             ],
             '4-4-2': [
@@ -962,10 +1340,10 @@
         const count = Math.min(players.length, positions.length);
         
         for(let i = 0; i < count; i++) {
-            spawnPlayer(players[i].name, players[i].photo, positions[i].left, positions[i].top);
+            spawnPlayer(players[i].name, players[i].photo, players[i].number, players[i].position, positions[i].left, positions[i].top);
         }
         
-        alert(`Formação ${formation} aplicada com ${count} jogadoras!`);
+        alert(`Formação ${formation} aplicada!`);
     }
 
     // --- SISTEMA DE ARRASTO ---
@@ -1019,7 +1397,213 @@
         el.addEventListener('mousedown', startDrag);
     }
 
-    // --- JOGADAS E DOSSIÊ ---
+    // --- TEMPLATES ---
+    function showTemplates() {
+        const modal = document.getElementById('templates-modal');
+        const grid = document.getElementById('templates-grid');
+        grid.innerHTML = '';
+        
+        Object.keys(db.templates).forEach(name => {
+            const template = db.templates[name];
+            const card = document.createElement('div');
+            card.className = 'template-card';
+            card.innerHTML = `
+                <div class="template-icon">📋</div>
+                <div style="font-weight:700; margin-bottom:5px;">${name}</div>
+                <div style="font-size:12px; color:#aaa;">${template.description}</div>
+            `;
+            card.onclick = () => {
+                loadTemplate(name);
+                closeModal('templates-modal');
+            };
+            grid.appendChild(card);
+        });
+        
+        modal.style.display = 'block';
+    }
+    
+    function loadTemplate(name) {
+        clearPitch(false);
+        const template = db.templates[name];
+        
+        if(template.players) template.players.forEach(p => {
+            spawnPlayer(p.name, '', p.number || 0, '', p.left, p.top);
+        });
+        
+        if(template.arrows) template.arrows.forEach(a => addArrow(a));
+        if(template.shapes) template.shapes.forEach(s => addShape(s));
+        
+        document.getElementById('play-name-input').value = name;
+        document.getElementById('current-play-name').textContent = name.toUpperCase();
+        saveState();
+        alert(`✅ Template "${name}" carregado!`);
+    }
+
+    // --- ANIMATION ---
+    function toggleAnimationControls() {
+        const controls = document.getElementById('animation-controls');
+        controls.classList.toggle('active');
+    }
+    
+    function animatePlay() {
+        const players = document.querySelectorAll('.player');
+        if(players.length === 0) {
+            alert("Adicione jogadoras ao campo primeiro!");
+            return;
+        }
+        
+        // Simple pulse animation
+        players.forEach(p => p.classList.add('animating'));
+        
+        setTimeout(() => {
+            players.forEach(p => p.classList.remove('animating'));
+        }, 2000);
+    }
+    
+    function stopAnimation() {
+        const players = document.querySelectorAll('.player');
+        players.forEach(p => p.classList.remove('animating'));
+        if(animationInterval) {
+            clearInterval(animationInterval);
+            animationInterval = null;
+        }
+    }
+    
+    async function exportGIF() {
+        alert("🎬 Exportação de GIF: Esta funcionalidade requer bibliotecas adicionais. Será implementada na próxima versão!");
+        // GIF export would require gif.js library properly configured
+    }
+
+    // --- COMPARISON ---
+    function comparePlaysByID() {
+        const plays = Object.keys(db.plays);
+        
+        if(plays.length < 2) {
+            alert("É necessário ter pelo menos 2 jogadas gravadas para comparar!");
+            return;
+        }
+        
+        const select1 = document.getElementById('compare-play-1');
+        const select2 = document.getElementById('compare-play-2');
+        
+        select1.innerHTML = plays.map(name => `<option value="${name}">${name}</option>`).join('');
+        select2.innerHTML = plays.map(name => `<option value="${name}">${name}</option>`).join('');
+        
+        if(plays.length >= 2) {
+            select2.selectedIndex = 1;
+        }
+        
+        document.getElementById('comparison-modal').style.display = 'block';
+    }
+    
+    function renderComparison() {
+        const play1Name = document.getElementById('compare-play-1').value;
+        const play2Name = document.getElementById('compare-play-2').value;
+        
+        if(play1Name === play2Name) {
+            alert("Selecione jogadas diferentes!");
+            return;
+        }
+        
+        const container = document.getElementById('comparison-container');
+        container.innerHTML = '';
+        
+        [play1Name, play2Name].forEach(name => {
+            const wrapper = document.createElement('div');
+            wrapper.style.position = 'relative';
+            
+            const pitchDiv = document.createElement('div');
+            pitchDiv.className = 'comparison-pitch';
+            pitchDiv.innerHTML = `
+                <div class="comparison-title">${name}</div>
+                <div style="width:100%; height:100%; position:relative; background:var(--scp-verde);">
+                    ${renderPlayForComparison(name)}
+                </div>
+            `;
+            
+            wrapper.appendChild(pitchDiv);
+            container.appendChild(wrapper);
+        });
+    }
+    
+    function renderPlayForComparison(playName) {
+        const data = db.plays[playName];
+        if(!data) return '';
+        
+        let html = '';
+        
+        if(data.players) {
+            data.players.forEach(p => {
+                html += `<div style="position:absolute; left:${p.left}; top:${p.top}; width:40px; height:40px; border-radius:50%; border:2px solid gold; background:${p.photo ? `url(${p.photo})` : '#333'}; background-size:cover;"></div>`;
+            });
+        }
+        
+        if(data.arrows) {
+            data.arrows.forEach(a => {
+                html += `<div style="position:absolute; left:${a.left}; top:${a.top}; transform:rotate(${a.angle}deg); transform-origin:left center;">
+                    <div style="width:${a.width}; height:4px; background:${a.color || 'yellow'};"></div>
+                </div>`;
+            });
+        }
+        
+        if(data.shapes) {
+            data.shapes.forEach(s => {
+                html += `<div style="position:absolute; left:${s.left}; top:${s.top}; width:${s.width}; height:${s.height}; border:3px solid ${s.color || 'yellow'}; border-radius:50%; background:rgba(255,255,255,0.1);"></div>`;
+            });
+        }
+        
+        return html;
+    }
+
+    // --- SHARE ---
+    function sharePlay() {
+        const name = document.getElementById('play-name-input').value.trim();
+        
+        if(!name || !db.plays[name]) {
+            alert("Grave a jogada primeiro!");
+            return;
+        }
+        
+        const playData = db.plays[name];
+        const shareCode = btoa(JSON.stringify(playData));
+        
+        document.getElementById('share-code').textContent = shareCode;
+        document.getElementById('share-modal').style.display = 'block';
+    }
+    
+    function copyShareCode() {
+        const code = document.getElementById('share-code').textContent;
+        navigator.clipboard.writeText(code).then(() => {
+            alert("✅ Código copiado!");
+        });
+    }
+    
+    function importPlay() {
+        const code = document.getElementById('import-code').value.trim();
+        
+        if(!code) {
+            alert("Cole o código primeiro!");
+            return;
+        }
+        
+        try {
+            const playData = JSON.parse(atob(code));
+            const playName = prompt("Nome para a jogada importada:");
+            
+            if(!playName) return;
+            
+            db.plays[playName] = playData;
+            localStorage.setItem('scp_db_ultimate', JSON.stringify(db));
+            renderPlaysList();
+            
+            closeModal('share-modal');
+            alert("✅ Jogada importada com sucesso!");
+        } catch(err) {
+            alert("❌ Código inválido!");
+        }
+    }
+
+    // --- JOGADAS ---
     function savePlay() {
         const name = document.getElementById('play-name-input').value.trim();
         if(!name) {
@@ -1030,6 +1614,8 @@
         const players = Array.from(document.querySelectorAll('.player')).map(p => ({ 
             name: p.dataset.name, 
             photo: p.dataset.photo, 
+            number: p.dataset.number,
+            position: p.dataset.position,
             left: p.style.left, 
             top: p.style.top 
         }));
@@ -1064,12 +1650,17 @@
             left: t.style.left,
             top: t.style.top
         }));
+        
+        const balls = Array.from(document.querySelectorAll('.soccer-ball')).map(b => ({
+            left: b.style.left,
+            top: b.style.top
+        }));
 
-        db.plays[name] = { players, arrows, shapes, opponents, texts };
-        localStorage.setItem('scp_db_v12', JSON.stringify(db));
+        db.plays[name] = { players, arrows, shapes, opponents, texts, balls };
+        localStorage.setItem('scp_db_ultimate', JSON.stringify(db));
         renderPlaysList();
         document.getElementById('current-play-name').innerText = name.toUpperCase();
-        alert("✅ Jogada Gravada com Sucesso!");
+        alert("✅ Jogada Gravada!");
     }
 
     function loadPlay(name) {
@@ -1078,22 +1669,23 @@
         document.getElementById('play-name-input').value = name;
         document.getElementById('current-play-name').innerText = name.toUpperCase();
         
-        if(data.players) data.players.forEach(p => spawnPlayer(p.name, p.photo, p.left, p.top));
+        if(data.players) data.players.forEach(p => spawnPlayer(p.name, p.photo, p.number, p.position, p.left, p.top));
         if(data.arrows) data.arrows.forEach(a => addArrow(a));
         if(data.shapes) data.shapes.forEach(s => addShape(s));
         if(data.opponents) data.opponents.forEach(o => addOpponent(o));
         if(data.texts) data.texts.forEach(t => addText(t));
+        if(data.balls) data.balls.forEach(b => addBall(b));
         
         saveState();
     }
     
     async function exportCurrentPlayPDF() {
-        const name = document.getElementById('play-name-input').value.trim() || 'Jogada_Atual';
+        const name = document.getElementById('play-name-input').value.trim() || 'Jogada';
         
         const btn = event.target;
         const originalText = btn.textContent;
         btn.classList.add('loading');
-        btn.textContent = '⏳ Gerando PDF...';
+        btn.textContent = '⏳ Gerando...';
         
         try {
             await new Promise(r => setTimeout(r, 100));
@@ -1112,7 +1704,6 @@
                 format: 'a4'
             });
             
-            // Título
             pdf.setFontSize(20);
             pdf.setFont(undefined, 'bold');
             pdf.text('SCP GESTOR TÁTICO', 105, 15, { align: 'center' });
@@ -1120,12 +1711,10 @@
             pdf.setFontSize(16);
             pdf.text(name, 105, 25, { align: 'center' });
             
-            // Adicionar imagem do campo
             const imgWidth = 180;
             const imgHeight = (canvas.height * imgWidth) / canvas.width;
             pdf.addImage(imgData, 'PNG', 15, 35, imgWidth, imgHeight);
             
-            // Footer
             pdf.setFontSize(10);
             pdf.setFont(undefined, 'normal');
             pdf.text(`Gerado em: ${new Date().toLocaleDateString('pt-PT')}`, 105, 285, { align: 'center' });
@@ -1134,86 +1723,11 @@
             
             btn.classList.remove('loading');
             btn.textContent = originalText;
-            alert("✅ PDF exportado com sucesso!");
+            alert("✅ PDF exportado!");
         } catch(err) {
             btn.classList.remove('loading');
             btn.textContent = originalText;
-            alert("❌ Erro ao exportar PDF: " + err.message);
-        }
-    }
-
-    async function exportAllPlaysPDF() {
-        const plays = Object.keys(db.plays);
-        
-        if(plays.length === 0) {
-            alert("Nenhuma jogada para exportar!");
-            return;
-        }
-        
-        if(!confirm(`Exportar ${plays.length} jogada(s) em PDF?`)) return;
-        
-        const btn = event.target;
-        const originalText = btn.textContent;
-        btn.classList.add('loading');
-        btn.textContent = `⏳ 0/${plays.length}`;
-        
-        try {
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF({
-                orientation: 'portrait',
-                unit: 'mm',
-                format: 'a4'
-            });
-            
-            let isFirstPage = true;
-            
-            for(let i = 0; i < plays.length; i++) {
-                const name = plays[i];
-                btn.textContent = `⏳ ${i + 1}/${plays.length}`;
-                
-                loadPlay(name);
-                await new Promise(r => setTimeout(r, 300));
-                
-                const canvas = await html2canvas(document.getElementById('pitch'), {
-                    backgroundColor: '#006633',
-                    scale: 2,
-                    logging: false
-                });
-                
-                if(!isFirstPage) {
-                    pdf.addPage();
-                }
-                isFirstPage = false;
-                
-                // Título da página
-                pdf.setFontSize(20);
-                pdf.setFont(undefined, 'bold');
-                pdf.text('SCP GESTOR TÁTICO', 105, 15, { align: 'center' });
-                
-                pdf.setFontSize(16);
-                pdf.text(name, 105, 25, { align: 'center' });
-                
-                // Adicionar imagem
-                const imgData = canvas.toDataURL('image/png');
-                const imgWidth = 180;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                pdf.addImage(imgData, 'PNG', 15, 35, imgWidth, imgHeight);
-                
-                // Footer
-                pdf.setFontSize(10);
-                pdf.setFont(undefined, 'normal');
-                pdf.text(`Jogada ${i + 1} de ${plays.length}`, 105, 285, { align: 'center' });
-            }
-            
-            pdf.save(`SCP_Dossier_Completo_${new Date().toISOString().split('T')[0]}.pdf`);
-            
-            btn.classList.remove('loading');
-            btn.textContent = originalText;
-            alert(`✅ Dossiê com ${plays.length} jogada(s) exportado!`);
-        } catch(err) {
-            btn.classList.remove('loading');
-            btn.textContent = originalText;
-            alert("❌ Erro ao exportar dossiê: " + err.message);
+            alert("❌ Erro: " + err.message);
         }
     }
     
@@ -1241,113 +1755,31 @@
             btnContainer.style.display = 'flex';
             btnContainer.style.gap = '5px';
             
-            const renameBtn = document.createElement('button');
-            renameBtn.style.cssText = 'width:35px !important; height:35px; background:#ff9800; margin:0 !important; padding:0 !important; font-size:16px;';
-            renameBtn.title = 'Renomear';
-            renameBtn.textContent = '✏️';
-            renameBtn.onclick = () => renamePlay(name);
-            
-            const dupBtn = document.createElement('button');
-            dupBtn.style.cssText = 'width:35px !important; height:35px; background:#28a745; margin:0 !important; padding:0 !important; font-size:16px;';
-            dupBtn.title = 'Duplicar';
-            dupBtn.textContent = '📋';
-            dupBtn.onclick = () => duplicatePlay(name);
-            
             const delBtn = document.createElement('button');
             delBtn.className = 'delete-btn';
             delBtn.textContent = '×';
-            delBtn.onclick = () => deletePlay(name);
+            delBtn.onclick = () => {
+                if(confirm(`Remover "${name}"?`)) {
+                    delete db.plays[name];
+                    localStorage.setItem('scp_db_ultimate', JSON.stringify(db));
+                    renderPlaysList();
+                }
+            };
             
-            btnContainer.appendChild(renameBtn);
-            btnContainer.appendChild(dupBtn);
             btnContainer.appendChild(delBtn);
-            
             div.appendChild(nameSpan);
             div.appendChild(btnContainer);
-            
             list.appendChild(div);
         });
     }
 
-    function deletePlay(name) {
-        if(confirm(`Tem certeza que deseja remover a jogada "${name}"?`)) {
-            delete db.plays[name];
-            localStorage.setItem('scp_db_v12', JSON.stringify(db));
-            renderPlaysList();
-            alert("✅ Jogada removida!");
-        }
-    }
-    
-    function duplicatePlay(name) {
-        const newName = prompt("Nome da cópia:", name + " (cópia)");
-        if(!newName || newName === name) return;
-        
-        if(db.plays[newName]) {
-            alert("❌ Já existe uma jogada com esse nome!");
-            return;
-        }
-        
-        db.plays[newName] = JSON.parse(JSON.stringify(db.plays[name]));
-        localStorage.setItem('scp_db_v12', JSON.stringify(db));
-        renderPlaysList();
-        alert("✅ Jogada duplicada!");
-    }
-    
-    function renamePlay(oldName) {
-        const newName = prompt("Novo nome da jogada:", oldName);
-        if(!newName || newName === oldName) return;
-        
-        if(db.plays[newName]) {
-            alert("❌ Já existe uma jogada com esse nome!");
-            return;
-        }
-        
-        db.plays[newName] = db.plays[oldName];
-        delete db.plays[oldName];
-        localStorage.setItem('scp_db_v12', JSON.stringify(db));
-        
-        // Update if this is the current play
-        const currentPlayName = document.getElementById('play-name-input').value;
-        if(currentPlayName === oldName) {
-            document.getElementById('play-name-input').value = newName;
-            document.getElementById('current-play-name').innerText = newName.toUpperCase();
-        }
-        
-        renderPlaysList();
-        alert("✅ Jogada renomeada!");
-    }
-    
-    function showKeyboardShortcuts() {
-        alert(`⌨️ ATALHOS DE TECLADO:
-
-• CTRL + Z → Desfazer última ação
-• DELETE → Remover elemento selecionado
-• CTRL + S → Gravar jogada atual
-• CTRL + E → Exportar jogada atual
-• CTRL + L → Limpar campo
-• ESC → Desselecionar elemento
-
-💡 Dica: Duplo clique em qualquer elemento para removê-lo rapidamente!`);
-    }
-    
-    let currentZoom = 1;
-    function zoomPitch(factor) {
-        const pitch = document.getElementById('pitch');
-        if(factor === 1) {
-            currentZoom = 1;
-        } else {
-            currentZoom *= factor;
-            currentZoom = Math.max(0.5, Math.min(2, currentZoom)); // Limit between 50% and 200%
-        }
-        pitch.style.transform = `scale(${currentZoom})`;
-    }
-    
+    // --- UTILS ---
     function clearPitch(needConfirm = true) {
-        if(needConfirm && !window.confirm('Limpar todo o campo?')) return;
-        document.querySelectorAll('.player, .arrow-container, .shape, .opponent, .text-annotation').forEach(el => el.remove());
+        if(needConfirm && !confirm('Limpar campo?')) return;
+        document.querySelectorAll('.player, .arrow-container, .shape, .opponent, .text-annotation, .soccer-ball').forEach(el => el.remove());
         document.getElementById('play-name-input').value = '';
         document.getElementById('current-play-name').innerText = 'NOVA JOGADA';
-        history = []; // Reset history
+        history = [];
         saveState();
     }
 
@@ -1362,8 +1794,7 @@
             history.pop(); 
             document.getElementById('pitch').innerHTML = history[history.length-1]; 
             
-            // Reattach event listeners
-            document.querySelectorAll('.player, .arrow-container, .shape, .opponent, .text-annotation').forEach(el => {
+            document.querySelectorAll('.player, .arrow-container, .shape, .opponent, .text-annotation, .soccer-ball').forEach(el => {
                 attachDraggable(el);
                 
                 if(el.classList.contains('arrow-container')) {
@@ -1381,8 +1812,12 @@
                 }
             });
         } else {
-            alert("Não há mais ações para desfazer!");
+            alert("Nada para desfazer!");
         }
+    }
+    
+    function closeModal(id) {
+        document.getElementById(id).style.display = 'none';
     }
 
     window.onload = () => { 
@@ -1391,35 +1826,12 @@
         renderMatchSquad();
     };
     
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
-        // Only in tactical screen
-        if(!document.getElementById('tactical-screen').classList.contains('active-screen')) return;
-        
-        // CTRL + Z = Undo
-        if(e.ctrlKey && e.key === 'z') {
-            e.preventDefault();
-            undo();
+    // Close modals when clicking outside
+    window.onclick = (e) => {
+        if(e.target.classList.contains('modal')) {
+            e.target.style.display = 'none';
         }
-        
-        // CTRL + S = Save
-        if(e.ctrlKey && e.key === 's') {
-            e.preventDefault();
-            savePlay();
-        }
-        
-        // CTRL + E = Export current
-        if(e.ctrlKey && e.key === 'e') {
-            e.preventDefault();
-            exportCurrentPlayPDF();
-        }
-        
-        // CTRL + L = Clear
-        if(e.ctrlKey && e.key === 'l') {
-            e.preventDefault();
-            clearPitch();
-        }
-    });
+    };
 </script>
 </body>
 </html>
