@@ -3,90 +3,152 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SCP Tactical Pro - Editor de Jogadas</title>
+    <title>SCP Tactical Pro - Live Sync</title>
     <style>
         :root { --scp-verde: #006633; --scp-ouro: #C5A147; }
-        body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: white; margin: 0; overflow: hidden; display: flex; height: 100vh; }
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: white; margin: 0; overflow: hidden; height: 100vh; }
         
-        /* Sidebar */
-        #app-sidebar { width: 340px; background: #222; border-right: 2px solid var(--scp-ouro); display: flex; flex-direction: column; padding: 15px; overflow-y: auto; }
-        
-        /* Campo */
+        .screen { display: none; height: 100vh; width: 100vw; overflow-y: auto; position: absolute; top: 0; left: 0; }
+        .active-screen { display: flex; }
+
+        /* Menu Inicial */
+        #main-menu { flex-direction: column; align-items: center; padding: 30px 0; gap: 20px; z-index: 100; background: #1a1a1a; }
+        .card { background: #222; padding: 20px; border-radius: 10px; border: 1px solid var(--scp-ouro); width: 90%; max-width: 500px; }
+
+        /* Quadro Tático */
+        #tactical-screen { overflow: hidden; }
+        #app-sidebar { width: 340px; background: #222; border-right: 2px solid var(--scp-ouro); display: flex; flex-direction: column; padding: 15px; overflow-y: auto; z-index: 50; }
         #canvas-container { flex-grow: 1; position: relative; background: var(--scp-verde); overflow: hidden; display: flex; justify-content: center; align-items: center; }
+        
         #pitch { 
             width: 95%; height: 92%; border: 3px solid white; position: relative;
             background-image: linear-gradient(0deg, rgba(255,255,255,0.05) 50%, transparent 50%);
             background-size: 100% 60px;
         }
 
-        /* Jogadoras */
-        .player {
-            width: 62px; height: 62px; border-radius: 50%; border: 2px solid gold;
-            position: absolute; z-index: 10; cursor: move; touch-action: none;
-            background-size: cover; background-position: center;
-            display: flex; align-items: flex-end; justify-content: center;
-        }
+        /* Jogadoras e Setas */
+        .player { width: 62px; height: 62px; border-radius: 50%; border: 2px solid gold; position: absolute; z-index: 10; cursor: move; touch-action: none; background-size: cover; background-position: center; display: flex; align-items: flex-end; justify-content: center; }
         .player span { background: rgba(0,0,0,0.8); font-size: 10px; padding: 2px 5px; border-radius: 3px; margin-bottom: -15px; font-weight: bold; white-space: nowrap; }
-
-        /* Setas Dinâmicas */
         .arrow-container { position: absolute; z-index: 5; cursor: move; touch-action: none; transform-origin: left center; display: flex; align-items: center; }
         .arrow-line { height: 6px; background: yellow; min-width: 20px; }
         .arrow-head { width: 0; height: 0; border-top: 10px solid transparent; border-bottom: 10px solid transparent; border-left: 18px solid yellow; }
-        .resize-handle { width: 22px; height: 22px; background: #2196F3; border-radius: 50%; position: absolute; right: -25px; border: 2px solid white; }
+        .resize-handle { width: 25px; height: 25px; background: #2196F3; border-radius: 50%; position: absolute; right: -30px; border: 2px solid white; }
 
-        /* UI Botões */
+        /* UI */
         button, input { width: 100%; padding: 12px; margin: 5px 0; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
         .btn-green { background: var(--scp-verde); color: white; }
         .btn-gold { background: var(--scp-ouro); color: black; }
-        .btn-play { background: #333; color: white; text-align: left; padding-right: 40px; position: relative; border-left: 4px solid var(--scp-ouro); }
-        .btn-del-play { position: absolute; right: 10px; top: 12px; background: #900; color: white; width: 25px; height: 25px; border-radius: 4px; padding: 0; }
+        .btn-outline { background: #333; color: white; border: 1px solid #555; }
+        .btn-play-item { background: #333; color: white; text-align: left; position: relative; margin-bottom: 4px; border-left: 4px solid var(--scp-ouro); }
         
-        .section-title { color: var(--scp-ouro); border-bottom: 1px solid #444; margin-top: 20px; padding-bottom: 5px; font-size: 14px; text-transform: uppercase; }
+        #convocatoria-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; margin-top: 15px; }
+        .atleta-item { text-align: center; opacity: 0.5; font-size: 12px; }
+        .atleta-item.selected { opacity: 1; color: var(--scp-ouro); font-weight: bold; }
         #match-squad { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-<div id="app-sidebar">
-    <button style="background:#444; color:white;" onclick="location.reload()">⬅ MENU INICIAL</button>
-    
-    <div class="section-title">Plantel do Jogo</div>
-    <div id="match-squad"></div>
-
-    <div class="section-title">Ferramentas</div>
-    <button class="btn-gold" onclick="createArrow()">➔ Adicionar Seta Ajustável</button>
-    <button class="btn-gold" style="background:#555; color:white;" onclick="undo()">↩ Desfazer Última Ação</button>
-
-    <div class="section-title">Gravar / Editar Jogada</div>
-    <input type="text" id="play-name-input" placeholder="Nome da Jogada (ex: Canto Brenda)">
-    <button class="btn-green" onclick="savePlay()">💾 Guardar no Disco</button>
-    
-    <div class="section-title">Jogadas Guardadas</div>
-    <div id="saved-plays-list"></div>
+<div id="main-menu" class="screen active-screen">
+    <h1 style="color:var(--scp-ouro)">SCP GESTÃO TÁTICA</h1>
+    <div class="card">
+        <h3>1. Registar Atleta (Upload Foto)</h3>
+        <input type="text" id="p-name" placeholder="Nome da Atleta">
+        <input type="file" id="p-photo" accept="image/*">
+        <button class="btn-green" onclick="registerAtleta()">+ Adicionar ao Clube</button>
+    </div>
+    <div class="card">
+        <h3>2. Selecionar Convocadas</h3>
+        <div id="convocatoria-list"></div>
+        <button class="btn-gold" style="margin-top:20px; font-size:18px;" onclick="goToTactical()">IR PARA O QUADRO ➔</button>
+    </div>
 </div>
 
-<div id="canvas-container">
-    <div id="pitch">
-        <div style="width:40%; height:12%; border:2px solid white; margin: 0 auto; border-top:none;"></div>
+<div id="tactical-screen" class="screen">
+    <div id="app-sidebar">
+        <button class="btn-outline" onclick="goToMenu()">⬅ VOLTAR AO MENU (Sem apagar)</button>
+        
+        <div style="border-bottom: 1px solid #444; margin: 15px 0; padding-bottom: 10px;">
+            <h4 style="margin:0 0 10px 0; color:var(--scp-ouro)">Banco de Suplentes</h4>
+            <div id="match-squad"></div>
+        </div>
+
+        <button class="btn-gold" onclick="createArrow()">➔ Adicionar Seta Ajustável</button>
+        <button class="btn-outline" onclick="undo()">↩ Desfazer</button>
+        
+        <div style="border-top: 1px solid #444; margin-top: 20px; padding-top: 10px;">
+            <input type="text" id="play-name-input" placeholder="Nome da Jogada">
+            <button class="btn-green" onclick="savePlay()">💾 Guardar Jogada</button>
+            <div id="saved-plays-list" style="margin-top:10px;"></div>
+        </div>
+    </div>
+
+    <div id="canvas-container">
+        <div id="pitch">
+            <div style="width:40%; height:12%; border:2px solid white; margin: 0 auto; border-top:none;"></div>
+        </div>
     </div>
 </div>
 
 <script>
-    // Recuperar base de dados e historial de jogadas
-    let db = JSON.parse(localStorage.getItem('scp_db_v7')) || { atletas: [], plays: {} };
+    let db = JSON.parse(localStorage.getItem('scp_db_v8')) || { atletas: [], plays: {} };
+    let selectedIds = [];
     let history = [];
 
-    // --- CARREGAMENTO INICIAL ---
-    window.onload = () => {
-        renderSquad();
-        renderPlaysList();
-    };
+    // --- NAVEGAÇÃO ---
+    function goToMenu() {
+        document.getElementById('tactical-screen').classList.remove('active-screen');
+        document.getElementById('main-menu').classList.add('active-screen');
+    }
 
-    function renderSquad() {
+    function goToTactical() {
+        document.getElementById('main-menu').classList.remove('active-screen');
+        document.getElementById('tactical-screen').classList.add('active-screen');
+        renderMatchSquad();
+    }
+
+    // --- GESTÃO ATLETAS ---
+    function registerAtleta() {
+        const name = document.getElementById('p-name').value;
+        const file = document.getElementById('p-photo').files[0];
+        if(!name) return;
+
+        const add = (img) => {
+            db.atletas.push({id: Date.now(), name, photo: img});
+            localStorage.setItem('scp_db_v8', JSON.stringify(db));
+            renderConvocatoria();
+            document.getElementById('p-name').value = '';
+        };
+
+        if(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => add(e.target.result);
+            reader.readAsDataURL(file);
+        } else { add(null); }
+    }
+
+    function renderConvocatoria() {
+        const list = document.getElementById('convocatoria-list');
+        list.innerHTML = '';
+        db.atletas.forEach(a => {
+            const div = document.createElement('div');
+            div.className = `atleta-item ${selectedIds.includes(a.id) ? 'selected' : ''}`;
+            div.innerHTML = `<img src="${a.photo || 'https://via.placeholder.com/50'}" width="50" height="50" style="border-radius:50%; border:2px solid ${selectedIds.includes(a.id)?'var(--scp-ouro)':'transparent'}"><br>${a.name}`;
+            div.onclick = () => {
+                if(selectedIds.includes(a.id)) selectedIds = selectedIds.filter(id => id !== a.id);
+                else selectedIds.push(a.id);
+                renderConvocatoria();
+                if(document.getElementById('tactical-screen').classList.contains('active-screen')) renderMatchSquad();
+            };
+            list.appendChild(div);
+        });
+    }
+
+    function renderMatchSquad() {
         const container = document.getElementById('match-squad');
         container.innerHTML = '';
-        // Mostra as atletas registadas (mesmo que não venham da tela 1 por agora)
-        db.atletas.forEach(a => {
+        const pool = selectedIds.length > 0 ? db.atletas.filter(a => selectedIds.includes(a.id)) : db.atletas;
+        pool.forEach(a => {
             const img = document.createElement('div');
             img.style.width = '55px'; img.style.height = '55px'; img.style.borderRadius = '50%';
             img.style.border = '2px solid var(--scp-ouro)'; img.style.backgroundSize = 'cover';
@@ -96,16 +158,15 @@
         });
     }
 
-    // --- LOGICA DO QUADRO ---
-    function spawnPlayer(name, photo, x='40%', y='70%') {
+    // --- QUADRO ---
+    function spawnPlayer(name, photo, left='45%', top='70%') {
         saveState();
         const p = document.createElement('div');
         p.className = 'player';
-        p.style.backgroundImage = `url(${photo || 'https://via.placeholder.com/60'})`;
-        p.style.left = x; p.style.top = y;
+        p.style.backgroundImage = `url(${photo || 'https://via.placeholder.com/62'})`;
+        p.style.left = left; p.style.top = top;
         p.innerHTML = `<span>${name}</span>`;
-        p.dataset.name = name;
-        p.dataset.photo = photo || '';
+        p.dataset.name = name; p.dataset.photo = photo || '';
         p.ondblclick = () => { p.remove(); saveState(); };
         makeDraggable(p);
         document.getElementById('pitch').appendChild(p);
@@ -113,100 +174,81 @@
 
     function createArrow(data = null) {
         saveState();
-        const container = document.createElement('div');
-        container.className = 'arrow-container';
-        container.style.left = data ? data.left : '50%';
-        container.style.top = data ? data.top : '50%';
-        container.style.transform = data ? `rotate(${data.angle}deg)` : 'rotate(0deg)';
+        const c = document.createElement('div');
+        c.className = 'arrow-container';
+        c.style.left = data ? data.left : '50%'; c.style.top = data ? data.top : '50%';
+        c.style.transform = data ? `rotate(${data.angle}deg)` : 'rotate(0deg)';
+        c.innerHTML = `<div class="arrow-line" style="width:${data?data.width:'80px'}"></div><div class="arrow-head"></div><div class="resize-handle"></div>`;
         
-        container.innerHTML = `
-            <div class="arrow-line" style="width: ${data ? data.width : '100px'};"></div>
-            <div class="arrow-head"></div>
-            <div class="resize-handle"></div>
-        `;
-
-        const handle = container.querySelector('.resize-handle');
-        const line = container.querySelector('.arrow-line');
-
-        handle.addEventListener('touchstart', (e) => {
+        const h = c.querySelector('.resize-handle');
+        const l = c.querySelector('.arrow-line');
+        
+        h.addEventListener('touchstart', (e) => {
             e.stopPropagation();
-            const onMove = (me) => {
-                const rect = container.getBoundingClientRect();
+            const move = (me) => {
+                const rect = c.getBoundingClientRect();
                 const dx = me.touches[0].clientX - rect.left;
                 const dy = me.touches[0].clientY - rect.top;
-                line.style.width = Math.sqrt(dx*dx + dy*dy) + 'px';
-                container.style.transform = `rotate(${Math.atan2(dy, dx) * 180 / Math.PI}deg)`;
+                l.style.width = Math.sqrt(dx*dx + dy*dy) + 'px';
+                c.style.transform = `rotate(${Math.atan2(dy, dx) * 180 / Math.PI}deg)`;
             };
-            const onEnd = () => { document.removeEventListener('touchmove', onMove); saveState(); };
-            document.addEventListener('touchmove', onMove);
-            document.addEventListener('touchend', onEnd);
+            const end = () => { document.removeEventListener('touchmove', move); saveState(); };
+            document.addEventListener('touchmove', move);
+            document.addEventListener('touchend', end);
         });
-
-        container.ondblclick = () => { container.remove(); saveState(); };
-        makeDraggable(container);
-        document.getElementById('pitch').appendChild(container);
+        c.ondblclick = () => { c.remove(); saveState(); };
+        makeDraggable(c);
+        document.getElementById('pitch').appendChild(c);
     }
 
-    // --- GESTÃO DE JOGADAS (SAVE / LOAD) ---
+    // --- PERSISTÊNCIA ---
     function savePlay() {
         const name = document.getElementById('play-name-input').value;
-        if(!name) { alert("Dê um nome à jogada!"); return; }
-
-        const players = Array.from(document.querySelectorAll('.player')).map(p => ({
-            name: p.dataset.name, photo: p.dataset.photo, left: p.style.left, top: p.style.top
-        }));
-
-        const arrows = Array.from(document.querySelectorAll('.arrow-container')).map(a => ({
-            left: a.style.left, top: a.style.top,
-            width: a.querySelector('.arrow-line').style.width,
-            angle: a.style.transform.replace(/[^0-9.-]/g, '') || 0
-        }));
-
+        if(!name) return;
+        const players = Array.from(document.querySelectorAll('.player')).map(p => ({ name: p.dataset.name, photo: p.dataset.photo, left: p.style.left, top: p.style.top }));
+        const arrows = Array.from(document.querySelectorAll('.arrow-container')).map(a => ({ left: a.style.left, top: a.style.top, width: a.querySelector('.arrow-line').style.width, angle: a.style.transform.replace(/[^0-9.-]/g, '') || 0 }));
         db.plays[name] = { players, arrows };
-        localStorage.setItem('scp_db_v7', JSON.stringify(db));
+        localStorage.setItem('scp_db_v8', JSON.stringify(db));
         renderPlaysList();
-        alert("Jogada guardada!");
+        alert("Guardado!");
     }
 
     function renderPlaysList() {
         const list = document.getElementById('saved-plays-list');
         list.innerHTML = '';
         Object.keys(db.plays).forEach(name => {
-            const div = document.createElement('div');
-            div.style.position = 'relative';
             const btn = document.createElement('button');
-            btn.className = 'btn-play';
-            btn.innerHTML = `📋 ${name}`;
+            btn.className = 'btn-play-item';
+            btn.innerHTML = `📋 ${name} <span style="float:right; color:red" onclick="deletePlay('${name}', event)">X</span>`;
             btn.onclick = () => loadPlay(name);
-            
-            const del = document.createElement('button');
-            del.className = 'btn-del-play';
-            del.innerText = 'X';
-            del.onclick = (e) => { e.stopPropagation(); delete db.plays[name]; localStorage.setItem('scp_db_v7', JSON.stringify(db)); renderPlaysList(); };
-            
-            div.appendChild(btn); div.appendChild(del);
-            list.appendChild(div);
+            list.appendChild(btn);
         });
     }
 
     function loadPlay(name) {
         saveState();
-        document.getElementById('pitch').innerHTML = '<div style="width:40%; height:12%; border:2px solid white; margin: 0 auto; border-top:none;"></div>';
-        const play = db.plays[name];
+        document.querySelectorAll('.player, .arrow-container').forEach(el => el.remove());
+        const p = db.plays[name];
         document.getElementById('play-name-input').value = name;
-        play.players.forEach(p => spawnPlayer(p.name, p.photo, p.left, p.top));
-        play.arrows.forEach(a => createArrow(a));
+        p.players.forEach(pd => spawnPlayer(pd.name, pd.photo, pd.left, pd.top));
+        p.arrows.forEach(ad => createArrow(ad));
     }
 
-    // --- UTILITÁRIOS ---
+    function deletePlay(name, e) {
+        e.stopPropagation();
+        delete db.plays[name];
+        localStorage.setItem('scp_db_v8', JSON.stringify(db));
+        renderPlaysList();
+    }
+
+    // --- HELPERS ---
     function makeDraggable(el) {
         el.addEventListener('touchstart', (e) => {
             let p3 = e.touches[0].clientX, p4 = e.touches[0].clientY;
             const move = (me) => {
                 let p1 = p3 - me.touches[0].clientX, p2 = p4 - me.touches[0].clientY;
                 p3 = me.touches[0].clientX; p4 = me.touches[0].clientY;
-                el.style.top = (el.offsetTop - p2) + "px";
-                el.style.left = (el.offsetLeft - p1) + "px";
+                el.style.top = (el.offsetTop - p2) + "px"; el.style.left = (el.offsetLeft - p1) + "px";
             };
             const end = () => { document.removeEventListener('touchmove', move); saveState(); };
             document.addEventListener('touchmove', move);
@@ -214,27 +256,17 @@
         });
     }
 
-    function saveState() {
-        const content = document.getElementById('pitch').innerHTML;
-        if(history[history.length-1] !== content) {
-            history.push(content);
-            if(history.length > 20) history.shift();
-        }
-    }
-
+    function saveState() { history.push(document.getElementById('pitch').innerHTML); if(history.length > 20) history.shift(); }
+    
     function undo() {
         if(history.length > 1) {
             history.pop();
             document.getElementById('pitch').innerHTML = history[history.length - 1];
             document.querySelectorAll('.player, .arrow-container').forEach(makeDraggable);
-            // Re-vincular redimensionamento das setas
-            document.querySelectorAll('.arrow-container').forEach(a => {
-                const handle = a.querySelector('.resize-handle');
-                const line = a.querySelector('.arrow-line');
-                handle.addEventListener('touchstart', (e) => { /* Mesma lógica acima simplificada */ });
-            });
         }
     }
+
+    window.onload = () => { renderConvocatoria(); renderPlaysList(); };
 </script>
 </body>
 </html>
