@@ -208,6 +208,31 @@
             color: white;
         }
         
+        /* Botão de eliminar jogadora */
+        .player-delete-btn {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 24px;
+            height: 24px;
+            background: #dc3545;
+            border: 2px solid white;
+            border-radius: 50%;
+            color: white;
+            font-weight: 900;
+            font-size: 14px;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        }
+        
+        .player:hover .player-delete-btn {
+            display: flex;
+        }
+        
         .opponent { 
             width: 40px; 
             height: 40px; 
@@ -415,16 +440,16 @@
             border: 2px solid #333;
         }
         
-        #match-squad::-webkit-scrollbar, #saved-plays-list::-webkit-scrollbar {
+        #match-squad::-webkit-scrollbar, #saved-plays-list::-webkit-scrollbar, #full-management-list::-webkit-scrollbar {
             width: 8px;
         }
         
-        #match-squad::-webkit-scrollbar-track, #saved-plays-list::-webkit-scrollbar-track {
+        #match-squad::-webkit-scrollbar-track, #saved-plays-list::-webkit-scrollbar-track, #full-management-list::-webkit-scrollbar-track {
             background: #1a1a1a;
             border-radius: 4px;
         }
         
-        #match-squad::-webkit-scrollbar-thumb, #saved-plays-list::-webkit-scrollbar-thumb {
+        #match-squad::-webkit-scrollbar-thumb, #saved-plays-list::-webkit-scrollbar-thumb, #full-management-list::-webkit-scrollbar-thumb {
             background: var(--scp-ouro);
             border-radius: 4px;
         }
@@ -472,6 +497,8 @@
             display: grid;
             grid-template-columns: 1fr;
             gap: 10px;
+            max-height: 400px;
+            overflow-y: auto;
         }
         
         .athlete-card {
@@ -732,9 +759,8 @@
             .comparison-container { grid-template-columns: 1fr; }
         }
     </style>
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
 </head>
 <body>
 
@@ -798,11 +824,6 @@
         
         <div class="divider"></div>
         
-        <h4 class="section-title">📋 TEMPLATES</h4>
-        <button class="btn-blue" onclick="showTemplates()">🎯 Ver Templates</button>
-        
-        <div class="divider"></div>
-        
         <h4 class="section-title">⚡ FORMAÇÕES</h4>
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
             <button class="btn-gold" style="font-size:11px; padding:8px;" onclick="applyFormation('4-3-3')">4-3-3</button>
@@ -841,15 +862,6 @@
     </div>
 </div>
 
-<!-- Templates Modal -->
-<div id="templates-modal" class="modal">
-    <div class="modal-content">
-        <span class="modal-close" onclick="closeModal('templates-modal')">&times;</span>
-        <h2 style="color:var(--scp-ouro)">📋 Templates de Jogadas</h2>
-        <div class="template-grid" id="templates-grid"></div>
-    </div>
-</div>
-
 <!-- Comparison Modal -->
 <div id="comparison-modal" class="modal">
     <div class="modal-content" style="max-width:1200px;">
@@ -880,59 +892,11 @@
 </div>
 
 <script>
-    let db = JSON.parse(localStorage.getItem('scp_db_ultimate')) || { atletas: [], plays: {}, templates: {} };
+    let db = JSON.parse(localStorage.getItem('scp_db_ultimate')) || { atletas: [], plays: {} };
     let history = [];
     let isDragging = false;
     let animationInterval = null;
     let animationStep = 0;
-
-    // Initialize templates
-    if(Object.keys(db.templates).length === 0) {
-        db.templates = {
-            'Ataque Rápido': {
-                description: 'Contra-ataque pela ala direita',
-                players: [
-                    {name: 'GR', left: '50%', top: '92%', number: 1},
-                    {name: 'Lateral', left: '80%', top: '75%', number: 2},
-                    {name: 'Médio', left: '70%', top: '55%', number: 8},
-                    {name: 'Avançado', left: '75%', top: '25%', number: 9}
-                ],
-                arrows: [
-                    {left: '50%', top: '90%', width: '150px', angle: -30, color: 'yellow'},
-                    {left: '75%', top: '75%', width: '120px', angle: -20, color: 'yellow'},
-                    {left: '72%', top: '55%', width: '100px', angle: -10, color: 'yellow'}
-                ]
-            },
-            'Defesa Zona': {
-                description: 'Defesa em bloco médio',
-                players: [
-                    {name: 'DC1', left: '40%', top: '65%', number: 4},
-                    {name: 'DC2', left: '60%', top: '65%', number: 5},
-                    {name: 'MC1', left: '35%', top: '50%', number: 6},
-                    {name: 'MC2', left: '65%', top: '50%', number: 8}
-                ],
-                shapes: [
-                    {left: '35%', top: '50%', width: '200px', height: '150px', color: 'red'}
-                ]
-            },
-            'Bola Parada': {
-                description: 'Esquema de canto',
-                players: [
-                    {name: 'Batedor', left: '85%', top: '15%', number: 10},
-                    {name: 'Alvo1', left: '45%', top: '12%', number: 9},
-                    {name: 'Alvo2', left: '55%', top: '12%', number: 7},
-                    {name: 'Apoio', left: '50%', top: '25%', number: 8}
-                ],
-                arrows: [
-                    {left: '82%', top: '15%', width: '180px', angle: 160, color: 'white'}
-                ],
-                shapes: [
-                    {left: '45%', top: '10%', width: '80px', height: '80px', color: 'yellow'}
-                ]
-            }
-        };
-        localStorage.setItem('scp_db_ultimate', JSON.stringify(db));
-    }
 
     // --- NAVEGAÇÃO ---
     function switchScreen(id) {
@@ -964,6 +928,7 @@
             document.getElementById('p-number').value = '';
             document.getElementById('p-position').value = '';
             document.getElementById('p-photo').value = '';
+            alert("✅ Atleta registada com sucesso!");
         };
         
         if(file) { 
@@ -1003,7 +968,12 @@
             
             const photo = document.createElement('div');
             photo.className = 'athlete-photo';
-            photo.style.backgroundImage = `url(${a.photo || 'https://via.placeholder.com/60/333/fff?text=' + a.name.charAt(0)})`;
+            if(a.photo) {
+                photo.style.backgroundImage = `url(${a.photo})`;
+            } else {
+                photo.style.backgroundColor = '#555';
+                photo.innerHTML = `<div style="display:flex; align-items:center; justify-content:center; height:100%; font-size:24px; font-weight:900; color:white;">${a.name.charAt(0).toUpperCase()}</div>`;
+            }
             
             const info = document.createElement('div');
             info.className = 'athlete-info';
@@ -1039,7 +1009,12 @@
         db.atletas.forEach(a => {
             const div = document.createElement('div');
             div.className = 'squad-player';
-            div.style.backgroundImage = `url(${a.photo || 'https://via.placeholder.com/60/333/fff?text=' + a.name.charAt(0)})`;
+            if(a.photo) {
+                div.style.backgroundImage = `url(${a.photo})`;
+            } else {
+                div.style.backgroundColor = '#555';
+                div.innerHTML = `<div style="display:flex; align-items:center; justify-content:center; height:100%; font-size:20px; font-weight:900; color:white;">${a.name.charAt(0).toUpperCase()}</div>`;
+            }
             div.title = `${a.name} - Nº${a.number || '?'} - ${a.position || '?'}`;
             div.onclick = () => spawnPlayer(a.name, a.photo, a.number, a.position);
             
@@ -1059,7 +1034,19 @@
         saveState();
         const p = document.createElement('div');
         p.className = 'player';
-        p.style.backgroundImage = `url(${photo || 'https://via.placeholder.com/60/333/fff?text=' + name.charAt(0)})`;
+        
+        if(photo) {
+            p.style.backgroundImage = `url(${photo})`;
+        } else {
+            p.style.backgroundColor = '#555';
+            const initial = document.createElement('div');
+            initial.style.fontSize = '24px';
+            initial.style.fontWeight = '900';
+            initial.style.color = 'white';
+            initial.textContent = name.charAt(0).toUpperCase();
+            p.appendChild(initial);
+        }
+        
         p.style.left = left; 
         p.style.top = top;
         
@@ -1075,17 +1062,23 @@
         nameDiv.textContent = name;
         p.appendChild(nameDiv);
         
+        // Botão de eliminar
+        const deleteBtn = document.createElement('div');
+        deleteBtn.className = 'player-delete-btn';
+        deleteBtn.textContent = '×';
+        deleteBtn.onclick = (e) => {
+            e.stopPropagation();
+            if(confirm(`Remover ${name}?`)) {
+                p.remove();
+                saveState();
+            }
+        };
+        p.appendChild(deleteBtn);
+        
         p.dataset.name = name; 
         p.dataset.photo = photo || '';
         p.dataset.number = number || '';
         p.dataset.position = position || '';
-        
-        p.ondblclick = () => { 
-            if(confirm(`Remover ${name}?`)) {
-                p.remove(); 
-                saveState(); 
-            }
-        };
         
         attachDraggable(p);
         document.getElementById('pitch').appendChild(p);
@@ -1351,7 +1344,7 @@
         let startX, startY, initialLeft, initialTop;
         
         const startDrag = (e) => {
-            if(e.target.classList.contains('handle')) return;
+            if(e.target.classList.contains('handle') || e.target.classList.contains('player-delete-btn')) return;
             e.preventDefault();
             
             isDragging = true;
@@ -1395,48 +1388,6 @@
         
         el.addEventListener('touchstart', startDrag, {passive: false});
         el.addEventListener('mousedown', startDrag);
-    }
-
-    // --- TEMPLATES ---
-    function showTemplates() {
-        const modal = document.getElementById('templates-modal');
-        const grid = document.getElementById('templates-grid');
-        grid.innerHTML = '';
-        
-        Object.keys(db.templates).forEach(name => {
-            const template = db.templates[name];
-            const card = document.createElement('div');
-            card.className = 'template-card';
-            card.innerHTML = `
-                <div class="template-icon">📋</div>
-                <div style="font-weight:700; margin-bottom:5px;">${name}</div>
-                <div style="font-size:12px; color:#aaa;">${template.description}</div>
-            `;
-            card.onclick = () => {
-                loadTemplate(name);
-                closeModal('templates-modal');
-            };
-            grid.appendChild(card);
-        });
-        
-        modal.style.display = 'block';
-    }
-    
-    function loadTemplate(name) {
-        clearPitch(false);
-        const template = db.templates[name];
-        
-        if(template.players) template.players.forEach(p => {
-            spawnPlayer(p.name, '', p.number || 0, '', p.left, p.top);
-        });
-        
-        if(template.arrows) template.arrows.forEach(a => addArrow(a));
-        if(template.shapes) template.shapes.forEach(s => addShape(s));
-        
-        document.getElementById('play-name-input').value = name;
-        document.getElementById('current-play-name').textContent = name.toUpperCase();
-        saveState();
-        alert(`✅ Template "${name}" carregado!`);
     }
 
     // --- ANIMATION ---
@@ -1534,7 +1485,9 @@
         
         if(data.players) {
             data.players.forEach(p => {
-                html += `<div style="position:absolute; left:${p.left}; top:${p.top}; width:40px; height:40px; border-radius:50%; border:2px solid gold; background:${p.photo ? `url(${p.photo})` : '#333'}; background-size:cover;"></div>`;
+                const bgStyle = p.photo ? `url(${p.photo})` : '#555';
+                const bgSize = p.photo ? 'cover' : 'auto';
+                html += `<div style="position:absolute; left:${p.left}; top:${p.top}; width:40px; height:40px; border-radius:50%; border:2px solid gold; background:${bgStyle}; background-size:${bgSize};"></div>`;
             });
         }
         
@@ -1685,18 +1638,34 @@
         const btn = event.target;
         const originalText = btn.textContent;
         btn.classList.add('loading');
-        btn.textContent = '⏳ Gerando...';
+        btn.textContent = '⏳ A gerar PDF...';
         
         try {
-            await new Promise(r => setTimeout(r, 100));
+            // Verificar se as bibliotecas estão carregadas
+            if(typeof html2canvas === 'undefined') {
+                throw new Error('Biblioteca html2canvas não carregada');
+            }
             
-            const canvas = await html2canvas(document.getElementById('pitch'), {
+            if(typeof window.jspdf === 'undefined') {
+                throw new Error('Biblioteca jsPDF não carregada');
+            }
+            
+            // Aguardar um momento para garantir renderização
+            await new Promise(r => setTimeout(r, 300));
+            
+            // Capturar o campo como imagem
+            const pitch = document.getElementById('pitch');
+            const canvas = await html2canvas(pitch, {
                 backgroundColor: '#006633',
                 scale: 2,
-                logging: false
+                logging: false,
+                useCORS: true,
+                allowTaint: true
             });
             
             const imgData = canvas.toDataURL('image/png');
+            
+            // Criar PDF
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF({
                 orientation: 'portrait',
@@ -1704,30 +1673,77 @@
                 format: 'a4'
             });
             
-            pdf.setFontSize(20);
+            // Título
+            pdf.setFontSize(22);
             pdf.setFont(undefined, 'bold');
-            pdf.text('SCP GESTOR TÁTICO', 105, 15, { align: 'center' });
+            pdf.text('SCP GESTOR TÁTICO', 105, 20, { align: 'center' });
             
-            pdf.setFontSize(16);
-            pdf.text(name, 105, 25, { align: 'center' });
+            // Nome da jogada
+            pdf.setFontSize(18);
+            pdf.setTextColor(197, 161, 71); // Cor dourada
+            pdf.text(name, 105, 32, { align: 'center' });
             
-            const imgWidth = 180;
+            // Linha separadora
+            pdf.setDrawColor(197, 161, 71);
+            pdf.setLineWidth(0.5);
+            pdf.line(20, 36, 190, 36);
+            
+            // Resetar cor para preto
+            pdf.setTextColor(0, 0, 0);
+            
+            // Calcular dimensões da imagem mantendo proporção
+            const pageWidth = 210; // A4 width in mm
+            const pageHeight = 297; // A4 height in mm
+            const margin = 15;
+            const maxWidth = pageWidth - (2 * margin);
+            const maxHeight = pageHeight - 80; // Espaço para título e rodapé
+            
+            const imgWidth = maxWidth;
             const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            pdf.addImage(imgData, 'PNG', 15, 35, imgWidth, imgHeight);
             
+            // Se a imagem for muito alta, ajustar
+            let finalWidth = imgWidth;
+            let finalHeight = imgHeight;
+            
+            if(imgHeight > maxHeight) {
+                finalHeight = maxHeight;
+                finalWidth = (canvas.width * finalHeight) / canvas.height;
+            }
+            
+            // Centralizar imagem
+            const xPos = (pageWidth - finalWidth) / 2;
+            const yPos = 45;
+            
+            // Adicionar imagem
+            pdf.addImage(imgData, 'PNG', xPos, yPos, finalWidth, finalHeight);
+            
+            // Rodapé
             pdf.setFontSize(10);
             pdf.setFont(undefined, 'normal');
-            pdf.text(`Gerado em: ${new Date().toLocaleDateString('pt-PT')}`, 105, 285, { align: 'center' });
+            const dataAtual = new Date().toLocaleDateString('pt-PT', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric' 
+            });
+            pdf.text(`Gerado em: ${dataAtual}`, 105, 285, { align: 'center' });
+            pdf.text('SCP Gestor Tático Ultimate', 105, 290, { align: 'center' });
             
-            pdf.save(`SCP_${name.replace(/[^a-z0-9]/gi, '_')}.pdf`);
+            // Salvar PDF
+            const fileName = `SCP_${name.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
+            pdf.save(fileName);
             
             btn.classList.remove('loading');
             btn.textContent = originalText;
-            alert("✅ PDF exportado!");
+            
+            setTimeout(() => {
+                alert("✅ PDF gerado com sucesso!");
+            }, 500);
+            
         } catch(err) {
+            console.error('Erro ao gerar PDF:', err);
             btn.classList.remove('loading');
             btn.textContent = originalText;
-            alert("❌ Erro: " + err.message);
+            alert("❌ Erro ao gerar PDF: " + err.message + "\n\nTente novamente ou verifique se adicionou elementos ao campo.");
         }
     }
     
@@ -1810,6 +1826,20 @@
                         h.addEventListener('mousedown', handleShapeResize.bind(null, el));
                     }
                 }
+                
+                // Reattach delete button for players
+                if(el.classList.contains('player')) {
+                    const deleteBtn = el.querySelector('.player-delete-btn');
+                    if(deleteBtn) {
+                        deleteBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            if(confirm(`Remover ${el.dataset.name}?`)) {
+                                el.remove();
+                                saveState();
+                            }
+                        };
+                    }
+                }
             });
         } else {
             alert("Nada para desfazer!");
@@ -1834,4 +1864,4 @@
     };
 </script>
 </body>
-</html>
+</html>        
