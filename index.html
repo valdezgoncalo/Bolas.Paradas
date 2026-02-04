@@ -103,6 +103,35 @@
             align-items: center; 
             overflow: hidden;
         }
+
+        #saved-plays-overlay {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 240px;
+            max-height: 60%;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.7);
+            border: 2px solid var(--scp-ouro);
+            border-radius: 12px;
+            padding: 12px;
+            z-index: 120;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        }
+
+        #saved-plays-overlay h4 {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            color: var(--scp-ouro);
+            text-align: center;
+        }
+
+        #saved-plays-overlay .btn-gold {
+            margin: 6px 0;
+            padding: 10px;
+            font-size: 12px;
+            text-align: left;
+        }
         
         /* Campo Clássico */
         #pitch { 
@@ -111,6 +140,7 @@
             border: 4px solid white; 
             position: relative;
             background: var(--scp-verde);
+            --element-scale: 1;
             background-image: 
                 linear-gradient(0deg, rgba(255,255,255,0.08) 50%, transparent 50%),
                 linear-gradient(90deg, rgba(255,255,255,0.04) 50%, transparent 50%);
@@ -162,6 +192,15 @@
             cursor: move;
             transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
+
+        .player,
+        .opponent,
+        .shape,
+        .text-annotation,
+        .soccer-ball {
+            transform: scale(var(--element-scale));
+            transform-origin: center;
+        }
         
         .player { 
             width: 60px; 
@@ -183,8 +222,8 @@
         }
         
         @keyframes playerMove {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
+            0%, 100% { transform: scale(var(--element-scale)); }
+            50% { transform: scale(calc(var(--element-scale) * 1.1)); }
         }
         
         .player-number {
@@ -419,6 +458,21 @@
             outline: none;
             border-color: var(--scp-ouro);
             box-shadow: 0 0 10px rgba(197, 161, 71, 0.3);
+        }
+
+        .form-hint {
+            margin-top: 8px;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #bbb;
+        }
+
+        .form-hint--error {
+            color: #ff9da4;
+        }
+
+        .form-hint--success {
+            color: #8ddf8f;
         }
         
         select {
@@ -774,7 +828,14 @@
         <input type="text" id="p-position" placeholder="Posição (ex: GR, DC, MC)">
         <input type="file" id="p-photo" accept="image/*">
         <button class="btn-green" onclick="registerAtleta()">+ Guardar Atleta</button>
+        <div id="athlete-feedback" class="form-hint">Preencha o nome e opcionalmente número/posição.</div>
         <div id="full-management-list"></div>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top:0;">📋 Jogadas Gravadas</h3>
+        <p class="form-hint" style="margin-top:0;">Escolha uma jogada para abrir no quadro tático.</p>
+        <div id="saved-plays-menu"></div>
     </div>
 
     <button class="btn-gold" style="max-width:600px; font-size:18px; padding:16px;" onclick="switchScreen('tactical-screen')">
@@ -810,6 +871,10 @@
             <option value="#00ff00">Verde</option>
             <option value="orange">Laranja</option>
         </select>
+
+        <div class="section-title" style="margin-top:10px;">🔎 Tamanho dos elementos</div>
+        <input type="range" id="element-scale" min="60" max="120" value="100">
+        <div class="form-hint" id="element-scale-value">100%</div>
         
         <div class="tool-grid">
             <button class="btn-gold" onclick="addArrow()">➜ Seta</button>
@@ -844,7 +909,7 @@
         <button class="btn-green" onclick="savePlay()">💾 Gravar</button>
         
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
-            <button class="btn-gold" onclick="exportCurrentPlayPDF()">📄 PDF</button>
+            <button class="btn-gold" onclick="exportCurrentPlayPDF(event)">📄 PDF</button>
             <button class="btn-gold" onclick="sharePlay()">🔗 Partilhar</button>
         </div>
         
@@ -854,6 +919,10 @@
     </div>
 
     <div id="canvas-container">
+        <div id="saved-plays-overlay">
+            <h4>📋 Jogadas Gravadas</h4>
+            <div id="saved-plays-overlay-list"></div>
+        </div>
         <div id="pitch">
             <div class="goal"></div>
             <div class="center-circle"></div>
@@ -912,12 +981,32 @@
     // --- GESTÃO ATLETAS ---
     function registerAtleta() {
         const name = document.getElementById('p-name').value.trim();
-        const number = parseInt(document.getElementById('p-number').value) || 0;
+        const numberInput = document.getElementById('p-number').value;
+        const number = parseInt(numberInput, 10) || 0;
         const position = document.getElementById('p-position').value.trim() || '-';
         const file = document.getElementById('p-photo').files[0];
+        const feedback = document.getElementById('athlete-feedback');
+
+        const setFeedback = (message, type = '') => {
+            feedback.textContent = message;
+            feedback.classList.remove('form-hint--error', 'form-hint--success');
+            if(type) {
+                feedback.classList.add(`form-hint--${type}`);
+            }
+        };
         
         if(!name) {
-            alert("Por favor, insira o nome da atleta!");
+            setFeedback("Por favor, insira o nome da atleta.", 'error');
+            return;
+        }
+
+        if(numberInput && (number < 1 || number > 99)) {
+            setFeedback("O número deve estar entre 1 e 99.", 'error');
+            return;
+        }
+
+        if(number && db.atletas.some(a => a.number === number)) {
+            setFeedback("Já existe uma atleta com esse número. Use outro.", 'error');
             return;
         }
         
@@ -928,7 +1017,7 @@
             document.getElementById('p-number').value = '';
             document.getElementById('p-position').value = '';
             document.getElementById('p-photo').value = '';
-            alert("✅ Atleta registada com sucesso!");
+            setFeedback("✅ Atleta registada com sucesso!", 'success');
         };
         
         if(file) { 
@@ -1094,8 +1183,9 @@
         
         const angle = data ? parseFloat(data.angle) || 0 : 0;
         const width = data ? data.width : '80px';
+        const scale = getElementScale();
         
-        c.style.transform = `rotate(${angle}deg)`;
+        c.style.transform = `rotate(${angle}deg) scale(${scale})`;
         c.innerHTML = `<div class="arrow-line" style="background:${color}; width:${width}"></div><div class="arrow-head" style="border-left-color:${color}"></div><div class="handle"></div>`;
         
         const h = c.querySelector('.handle');
@@ -1120,6 +1210,7 @@
         const rect = document.getElementById('pitch').getBoundingClientRect();
         const startLeft = parseFloat(c.style.left) || 0;
         const startTop = parseFloat(c.style.top) || 0;
+        const scale = getElementScale();
         
         const move = (me) => {
             const event = me.touches ? me.touches[0] : me;
@@ -1133,7 +1224,7 @@
             const angle = Math.atan2(dy, dx) * 180 / Math.PI;
             
             c.querySelector('.arrow-line').style.width = Math.max(20, length) + 'px';
-            c.style.transform = `rotate(${angle}deg)`;
+            c.style.transform = `rotate(${angle}deg) scale(${scale})`;
         };
         
         const end = () => {
@@ -1632,13 +1723,15 @@
         saveState();
     }
     
-    async function exportCurrentPlayPDF() {
+    async function exportCurrentPlayPDF(evt) {
         const name = document.getElementById('play-name-input').value.trim() || 'Jogada';
         
-        const btn = event.target;
-        const originalText = btn.textContent;
-        btn.classList.add('loading');
-        btn.textContent = '⏳ A gerar PDF...';
+        const btn = evt?.target || document.querySelector("button[onclick*='exportCurrentPlayPDF']");
+        const originalText = btn ? btn.textContent : '';
+        if(btn) {
+            btn.classList.add('loading');
+            btn.textContent = '⏳ A gerar PDF...';
+        }
         
         try {
             // Verificar se as bibliotecas estão carregadas
@@ -1732,8 +1825,10 @@
             const fileName = `SCP_${name.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
             pdf.save(fileName);
             
-            btn.classList.remove('loading');
-            btn.textContent = originalText;
+            if(btn) {
+                btn.classList.remove('loading');
+                btn.textContent = originalText;
+            }
             
             setTimeout(() => {
                 alert("✅ PDF gerado com sucesso!");
@@ -1741,22 +1836,38 @@
             
         } catch(err) {
             console.error('Erro ao gerar PDF:', err);
-            btn.classList.remove('loading');
-            btn.textContent = originalText;
+            if(btn) {
+                btn.classList.remove('loading');
+                btn.textContent = originalText;
+            }
             alert("❌ Erro ao gerar PDF: " + err.message + "\n\nTente novamente ou verifique se adicionou elementos ao campo.");
         }
     }
     
     function renderPlaysList() {
         const list = document.getElementById('saved-plays-list');
+        const menuList = document.getElementById('saved-plays-menu');
+        const overlayList = document.getElementById('saved-plays-overlay-list');
         const plays = Object.keys(db.plays);
         
         if(plays.length === 0) {
             list.innerHTML = '<p style="text-align:center; color:#888;">Nenhuma jogada gravada</p>';
+            if(menuList) {
+                menuList.innerHTML = '<p style="text-align:center; color:#888;">Nenhuma jogada gravada</p>';
+            }
+            if(overlayList) {
+                overlayList.innerHTML = '<p style="text-align:center; color:#bbb; margin:0;">Nenhuma jogada</p>';
+            }
             return;
         }
         
         list.innerHTML = '';
+        if(menuList) {
+            menuList.innerHTML = '';
+        }
+        if(overlayList) {
+            overlayList.innerHTML = '';
+        }
         
         plays.forEach(name => {
             const div = document.createElement('div');
@@ -1786,10 +1897,48 @@
             div.appendChild(nameSpan);
             div.appendChild(btnContainer);
             list.appendChild(div);
+
+            if(menuList) {
+                const menuBtn = document.createElement('button');
+                menuBtn.className = 'btn-gold';
+                menuBtn.style.textAlign = 'left';
+                menuBtn.textContent = `📋 ${name}`;
+                menuBtn.onclick = () => {
+                    switchScreen('tactical-screen');
+                    loadPlay(name);
+                };
+                menuList.appendChild(menuBtn);
+            }
+
+            if(overlayList) {
+                const overlayBtn = document.createElement('button');
+                overlayBtn.className = 'btn-gold';
+                overlayBtn.textContent = `📋 ${name}`;
+                overlayBtn.onclick = () => loadPlay(name);
+                overlayList.appendChild(overlayBtn);
+            }
         });
     }
 
     // --- UTILS ---
+    function getElementScale() {
+        const pitch = document.getElementById('pitch');
+        const scaleValue = getComputedStyle(pitch).getPropertyValue('--element-scale');
+        const parsed = parseFloat(scaleValue);
+        return Number.isNaN(parsed) ? 1 : parsed;
+    }
+
+    function setElementScale(scale) {
+        const pitch = document.getElementById('pitch');
+        pitch.style.setProperty('--element-scale', scale);
+        document.querySelectorAll('.arrow-container').forEach((arrow) => {
+            const transform = arrow.style.transform || '';
+            const match = transform.match(/rotate\(([^)]+)deg\)/);
+            const angle = match ? parseFloat(match[1]) : 0;
+            arrow.style.transform = `rotate(${angle}deg) scale(${scale})`;
+        });
+    }
+
     function clearPitch(needConfirm = true) {
         if(needConfirm && !confirm('Limpar campo?')) return;
         document.querySelectorAll('.player, .arrow-container, .shape, .opponent, .text-annotation, .soccer-ball').forEach(el => el.remove());
@@ -1854,6 +2003,17 @@
         renderFullManagement(); 
         renderPlaysList(); 
         renderMatchSquad();
+        const scaleInput = document.getElementById('element-scale');
+        const scaleLabel = document.getElementById('element-scale-value');
+        if(scaleInput && scaleLabel) {
+            const updateScale = () => {
+                const scale = parseInt(scaleInput.value, 10) / 100;
+                scaleLabel.textContent = `${scaleInput.value}%`;
+                setElementScale(scale);
+            };
+            scaleInput.addEventListener('input', updateScale);
+            updateScale();
+        }
     };
     
     // Close modals when clicking outside
@@ -1864,4 +2024,4 @@
     };
 </script>
 </body>
-</html>        
+</html>
